@@ -1,16 +1,24 @@
 package com.bot.VkParsingBot.service;
 
 import com.bot.VkParsingBot.config.BotConfig;
+import com.bot.VkParsingBot.model.*;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.objects.Chat;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
+
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
 
 @Service
 public class TelegramBot extends TelegramLongPollingBot {
 
+    @Autowired
+    private UserRepository userRepository;
     private final BotConfig botConfig;
 
     @Autowired
@@ -43,6 +51,14 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     private void newBotUser(Update update) {
         sendMessage("test", update.getMessage().getChatId());
+        Chat chat = update.getMessage().getChat();
+        User user = new User();
+        user.setId(chat.getId());
+        user.setUserName(chat.getUserName());
+        user.setFirstName(chat.getFirstName());
+        user.setLastName(chat.getLastName());
+        user.setRegistrationDate(Timestamp.valueOf(LocalDateTime.now()));
+        userRepository.save(user);
     }
 
     private void sendMessage(String text, Long chatId) {
