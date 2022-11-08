@@ -26,6 +26,15 @@ public class User {
     @Column(name = "registration_date")
     private Timestamp registrationDate;
 
+    @Column(name = "code")
+    private String code;
+
+    @Column(name = "token")
+    private String token;
+
+    @Column(name = "vk_id")
+    private Integer vkId;
+
     @Transient
     private List<String> trackedWords;
 }

@@ -1,6 +1,8 @@
 package com.bot.VkParsingBot.service;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
@@ -9,6 +11,7 @@ import java.util.stream.Collectors;
 
 
 @Service
+@Slf4j
 public class KeywordsCollector {
 
     private final JdbcTemplate jdbcTemplate;
@@ -18,8 +21,7 @@ public class KeywordsCollector {
     @Autowired
     KeywordsCollector(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate; //при создании, затем при любом изменении перечитываем набор данных в джаве
-        //TODO: подумать над перезаписью не всей мапы, а конкретного пользователя
-        var wordsRow = this.jdbcTemplate.queryForRowSet("SELECT * FROM keywords");
+        var wordsRow = jdbcTemplate.queryForRowSet("SELECT * FROM keywords");
 
         while (wordsRow.next()) {
             Long userId = wordsRow.getLong("user_id");
@@ -35,10 +37,33 @@ public class KeywordsCollector {
         }
     }
 
+    public List<String> addUsersWord(Long userId, List<String> words) {
+        String resultFromMap = allWordsFromDb.getOrDefault(userId, "");
+        //var listOfWords = words.stream().map(x->x.concat("\n")).collect(Collectors.toList());
+        String resultFromList = "\n" + String.join("\n", words);
+        String resultString = resultFromMap.concat(resultFromList);
+        allWordsFromDb.put(userId, resultString);
+        try {
+            for (String word : words) {
+                if (!word.isBlank()) {
+                    jdbcTemplate.update("INSERT  INTO keywords (user_id,word) VALUES(?1,?2)", userId, word);
+                }
+                log.warn("Пользователь {} добавил ключевые слова {}", userId, resultFromList);
+            }
+            return Arrays.stream(resultString.split("\n")).filter(x -> !x.isBlank()).collect(Collectors.toList());
+        } catch (DataAccessException e) {
+            log.error(e.getMessage());
+            allWordsFromDb.put(userId, resultFromMap);
+            return usersWord(userId);
+        }
+
+
+    }
+
     public List<String> usersWord(Long userId) {
         for (var es : allWordsFromDb.entrySet()) {
             if (Objects.equals(es.getKey(), userId)) {
-                return Arrays.stream(es.getValue().split("\n")).collect(Collectors.toList());
+                return Arrays.stream(es.getValue().split("\n")).filter(x -> !x.isBlank()).collect(Collectors.toList());
             }
         }
         return new ArrayList<>();
