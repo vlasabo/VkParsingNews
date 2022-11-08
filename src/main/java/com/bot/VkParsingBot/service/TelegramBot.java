@@ -24,6 +24,7 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     @Autowired
     private UserRepository userRepository;
+
     @Autowired
     private KeywordsCollector keywordsCollector;
     private final BotConfig botConfig;
