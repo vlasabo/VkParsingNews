@@ -101,7 +101,13 @@ public class TelegramBot extends TelegramLongPollingBot {
                         setUserBotStatus(chatId, BotStatus.WAITING);
                         break;
                     case "/check_news":
-                        checkUserNews(chatId);
+                        if (userRepository.findById(chatId).isPresent()) {
+                            if (checkUserNews(chatId) == 0) {
+                                sendMessage("Новостей не нашлось", chatId);
+                            }
+                        } else {
+                            sendMessage("Сначала разрешите доступ к новостям и друзьям. Команда /start", chatId);
+                        }
                         break;
                     case "/delete_all_words":
                         keywordsCollector.clearWords(chatId);
@@ -141,13 +147,13 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
     }
 
-    private void checkUserNews(Long chatId) {
+    public int checkUserNews(Long chatId) {
         Optional<User> userOpt = userRepository.findById(chatId);
         List<String> answerList;
         String text;
+        int replySize = 0;
 
         if (userOpt.isPresent()) {
-            int replySize = 0;
             if (!userOpt.get().getToken().isBlank()) {
                 try {
                     answerList = vkUser.checkNewsVk(userOpt.get().getToken(), userOpt.get().getVkId(), chatId);
@@ -164,15 +170,9 @@ public class TelegramBot extends TelegramLongPollingBot {
                 } catch (ClientException | ApiException e) {
                     log.error(e.getMessage());
                 }
-            } else {
-                text = "Сначала разрешите доступ к новостям и друзьям. Команда /start";
-                sendMessage(text, chatId);
-            }
-            if (replySize == 0) {
-                text = "Новостей не нашлось";
-                sendMessage(text, chatId);
             }
         }
+        return replySize;
     }
 
     private void registerVkUser(Long chatId, String messageText) throws ClientException, ApiException {

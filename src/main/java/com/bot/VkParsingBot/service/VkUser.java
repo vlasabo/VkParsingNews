@@ -94,7 +94,8 @@ public class VkUser {
 
         for (var item : listNews) {
             String dateString = "";
-
+            StringBuilder source = new StringBuilder();
+            source.append(item.getRaw().get("source_id")).append("_").append(item.getRaw().get("post_id"));
             for (var es : item.getRaw().entrySet()) {
                 if (es.getKey().equals("date")) {
                     long ti = Long.parseLong(es.getValue().toString());
@@ -102,20 +103,25 @@ public class VkUser {
                             .concat(": ");
                 }
 
+
                 if (es.getKey().equals("text")) {
                     String news = es.getValue().toString().toLowerCase();
                     if (news.isBlank()) {
                         dateString = "";
+                        source.setLength(0);
                         continue;
                     }
                     var contain = userWordsList.stream().anyMatch(x -> news.contains(" ".concat(x.toLowerCase()).concat(" ")));
                     if (contain) {
                         answerList.add(sb.append(dateString)
+                                .append("\n\n").append("https://vk.com/feed?w=wall").append(source).append("\n")
                                 .append(es.getValue().toString().replace("\\n", "\n"))
                                 .append("\n\n").toString());
                         sb.setLength(0);
+                        source.setLength(0);
                     }
                     dateString = "";
+                    source.setLength(0);
                 }
 
             }
