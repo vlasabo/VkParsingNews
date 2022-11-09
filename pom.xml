@@ -87,37 +87,18 @@
         <plugins>
 
             <plugin>
-
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-maven-plugin</artifactId>
-                <version>2.7.5</version>
-                <configuration>
-                    <excludes>
-                        <exclude>
-                            <groupId>org.projectlombok</groupId>
-                            <artifactId>lombok</artifactId>
-                        </exclude>
-                    </excludes>
-                </configuration>
-            </plugin>
-
-            <plugin> <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-war-plugin</artifactId>
-                <version>2.5</version>
-                <configuration>
-                    <webResources>
-                        <resources>
-                            <directory>WebContent</directory>
-                            <includes>
-                                <include>**/*.*</include> <!--this line includes the xml files into the war, which will be found when it is exploded in server during deployment -->
-                            </includes>
-                            <excludes>
-                                <exclude>*.java</exclude>
-                            </excludes>
-                        </resources>
-                    </webResources>
-                    <webXml>src/main/resources/application.properties</webXml>
-                </configuration>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <version>3.0.1</version>
+                <executions>
+                    <execution>
+                        <id>copy-dependencies</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>copy-dependencies</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
 
         </plugins>
