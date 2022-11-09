@@ -7,6 +7,7 @@ import com.bot.VkParsingBot.model.*;
 import com.vk.api.sdk.exceptions.ApiException;
 import com.vk.api.sdk.exceptions.ClientException;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -21,10 +22,8 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -50,6 +49,10 @@ public class TelegramBot extends TelegramLongPollingBot {
     @Getter
     private static HashMap<Long, List<String>> wordsForAdding;
 
+    @Getter
+    @Setter
+    private static HashMap<Long, List<String>> sentNews;
+
     @Autowired
     VkUser vkUser;
 
@@ -58,11 +61,13 @@ public class TelegramBot extends TelegramLongPollingBot {
         this.botConfig = botConfig;
         userStatus = new HashMap<>();
         wordsForAdding = new HashMap<>();
+        sentNews = new HashMap<>();
         List<BotCommand> commands = new ArrayList<>();
         commands.add(new BotCommand("/start", "регистрация"));
         commands.add(new BotCommand("/show_words", "показать отслеживаемые слова"));
         commands.add(new BotCommand("/add_words", "добавить отслеживаемые слова"));
         commands.add(new BotCommand("/stop_adding", "остановить добавление слов"));
+        commands.add(new BotCommand("/delete_all_words", "очистить список отслеживаемых слов"));
         commands.add(new BotCommand("/check_news", "проверить что там в новостях по отслеживаемому"));
         execute(new SetMyCommands(commands, new BotCommandScopeDefault(), "ru"));
     }
@@ -96,27 +101,11 @@ public class TelegramBot extends TelegramLongPollingBot {
                         setUserBotStatus(chatId, BotStatus.WAITING);
                         break;
                     case "/check_news":
-                        Optional<User> userOpt = userRepository.findById(chatId);
-                        List<String> answerList = new ArrayList<>();
-                        String text;
-                        if (userOpt.isPresent()) {
-                            if (!userOpt.get().getToken().isBlank()) {
-                                try {
-                                    answerList = vkUser.checkNewsVk(userOpt.get().getToken(), userOpt.get().getVkId(), chatId);
-                                    answerList.stream().forEach(s -> sendMessage(s, chatId));
-                                } catch (ClientException | ApiException e) {
-                                    log.error(e.getMessage());
-                                }
-                            } else {
-                                text = "Сначала разрешите доступ к новостям и друзьям. Команда /start";
-                                sendMessage(text, chatId);
-                            }
-                            if (answerList.size() == 0) {
-                                text = "Новостей не нашлось";
-                                sendMessage(text, chatId);
-                            }
-                        }
+                        checkUserNews(chatId);
                         break;
+                    case "/delete_all_words":
+                        keywordsCollector.clearWords(chatId);
+                        sendMessage("Все слова очищены", chatId);
                 }
             } else if (getUserBotStatus(chatId) == BotStatus.WAITING) {
                 switch (messageText) {
@@ -149,6 +138,40 @@ public class TelegramBot extends TelegramLongPollingBot {
                 setUserBotStatus(chatId, BotStatus.NORMAL);
             }
 
+        }
+    }
+
+    private void checkUserNews(Long chatId) {
+        Optional<User> userOpt = userRepository.findById(chatId);
+        List<String> answerList;
+        String text;
+
+        if (userOpt.isPresent()) {
+            int replySize = 0;
+            if (!userOpt.get().getToken().isBlank()) {
+                try {
+                    answerList = vkUser.checkNewsVk(userOpt.get().getToken(), userOpt.get().getVkId(), chatId);
+                    var sentNewsToUserList = TelegramBot.getSentNews()
+                            .getOrDefault(chatId, Collections.emptyList());
+                    var resultListToSend = answerList.stream()
+                            .filter(s -> !sentNewsToUserList.contains(s)).collect(Collectors.toList());
+                    resultListToSend.forEach(s -> sendMessage(s, chatId));
+                    replySize = resultListToSend.size();
+                    var hashMapSent = TelegramBot.getSentNews();
+                    resultListToSend.addAll(sentNewsToUserList);
+                    hashMapSent.put(chatId, resultListToSend);
+                    TelegramBot.setSentNews(hashMapSent);
+                } catch (ClientException | ApiException e) {
+                    log.error(e.getMessage());
+                }
+            } else {
+                text = "Сначала разрешите доступ к новостям и друзьям. Команда /start";
+                sendMessage(text, chatId);
+            }
+            if (replySize == 0) {
+                text = "Новостей не нашлось";
+                sendMessage(text, chatId);
+            }
         }
     }
 

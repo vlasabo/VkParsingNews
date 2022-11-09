@@ -68,4 +68,9 @@ public class KeywordsCollector {
         }
         return new ArrayList<>();
     }
+
+    public void clearWords(Long userId) {
+        jdbcTemplate.update("DELETE FROM keywords WHERE user_id = ?", userId);
+        allWordsFromDb.remove(userId);
+    }
 }

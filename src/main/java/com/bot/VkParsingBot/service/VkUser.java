@@ -17,6 +17,8 @@ import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -35,6 +37,8 @@ public class VkUser {
     private String token;
 
     private final VkConfig vkConfig;
+
+    private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
     @Autowired
     KeywordsCollector keywordsCollector;
@@ -72,16 +76,19 @@ public class VkUser {
         UserActor actor = createActorFromToken(token, vkId);
         StringBuilder sb = new StringBuilder();
         var userWordsList = keywordsCollector.usersWord(userId);
+        if (userWordsList.size() == 0) {
+            return answerList;
+        }
 
         var filterList = new ArrayList<Filters>();
         filterList.add(Filters.POST);
-        filterList.add(Filters.NOTE);
+        //filterList.add(Filters.NOTE);
         var getResponse = vk.newsfeed()
                 .get(actor)
                 .filters(filterList)
-                .returnBanned(true)
+                .returnBanned(false)
                 .count(100)
-                //.startFrom("" + LocalDateTime.now().minusDays(1).toEpochSecond(ZoneOffset.ofHours(3)))
+                .startFrom("" + LocalDateTime.now().minusDays(7).toEpochSecond(ZoneOffset.ofHours(3)))
                 .execute();
         var listNews = getResponse.getItems();
 
@@ -91,7 +98,7 @@ public class VkUser {
             for (var es : item.getRaw().entrySet()) {
                 if (es.getKey().equals("date")) {
                     long ti = Long.parseLong(es.getValue().toString());
-                    dateString = LocalDateTime.ofEpochSecond(ti, 0, ZoneOffset.ofHours(3)).toString()
+                    dateString = LocalDateTime.ofEpochSecond(ti, 0, ZoneOffset.ofHours(3)).format(formatter)
                             .concat(": ");
                 }
 
