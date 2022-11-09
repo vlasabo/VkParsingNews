@@ -48,8 +48,8 @@ public class KeywordsCollector {
                 if (!word.isBlank()) {
                     jdbcTemplate.update("INSERT  INTO keywords (user_id,word) VALUES(?1,?2)", userId, word);
                 }
-                log.warn("Пользователь {} добавил ключевые слова {}", userId, resultFromList);
             }
+            log.warn("Пользователь {} добавил ключевые слова {}", userId, resultFromList);
             return Arrays.stream(resultString.split("\n")).filter(x -> !x.isBlank()).collect(Collectors.toList());
         } catch (DataAccessException e) {
             log.error(e.getMessage());

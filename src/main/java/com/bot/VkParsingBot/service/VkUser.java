@@ -8,13 +8,18 @@ import com.vk.api.sdk.exceptions.ApiException;
 import com.vk.api.sdk.exceptions.ClientException;
 import com.vk.api.sdk.httpclient.HttpTransportClient;
 import com.vk.api.sdk.objects.UserAuthResponse;
+import com.vk.api.sdk.objects.newsfeed.Filters;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Component
@@ -30,6 +35,9 @@ public class VkUser {
     private String token;
 
     private final VkConfig vkConfig;
+
+    @Autowired
+    KeywordsCollector keywordsCollector;
 
     @Autowired
     public VkUser(VkConfig vkConfig) {
@@ -55,5 +63,56 @@ public class VkUser {
 
     private UserActor createActorFromToken(String token, Integer vkId) {
         return new UserActor(vkId, token);
+    }
+
+    public List<String> checkNewsVk(String token, Integer vkId, Long userId) throws ClientException, ApiException {
+        var answerList = new ArrayList<String>();
+        TransportClient transportClient = new HttpTransportClient();
+        VkApiClient vk = new VkApiClient(transportClient);
+        UserActor actor = createActorFromToken(token, vkId);
+        StringBuilder sb = new StringBuilder();
+        var userWordsList = keywordsCollector.usersWord(userId);
+
+        var filterList = new ArrayList<Filters>();
+        filterList.add(Filters.POST);
+        filterList.add(Filters.NOTE);
+        var getResponse = vk.newsfeed()
+                .get(actor)
+                .filters(filterList)
+                .returnBanned(true)
+                .count(100)
+                //.startFrom("" + LocalDateTime.now().minusDays(1).toEpochSecond(ZoneOffset.ofHours(3)))
+                .execute();
+        var listNews = getResponse.getItems();
+
+        for (var item : listNews) {
+            String dateString = "";
+
+            for (var es : item.getRaw().entrySet()) {
+                if (es.getKey().equals("date")) {
+                    long ti = Long.parseLong(es.getValue().toString());
+                    dateString = LocalDateTime.ofEpochSecond(ti, 0, ZoneOffset.ofHours(3)).toString()
+                            .concat(": ");
+                }
+
+                if (es.getKey().equals("text")) {
+                    String news = es.getValue().toString().toLowerCase();
+                    if (news.isBlank()) {
+                        dateString = "";
+                        continue;
+                    }
+                    var contain = userWordsList.stream().anyMatch(x -> news.contains(" ".concat(x.toLowerCase()).concat(" ")));
+                    if (contain) {
+                        answerList.add(sb.append(dateString)
+                                .append(es.getValue().toString().replace("\\n", "\n"))
+                                .append("\n\n").toString());
+                        sb.setLength(0);
+                    }
+                    dateString = "";
+                }
+
+            }
+        }
+        return answerList;
     }
 }

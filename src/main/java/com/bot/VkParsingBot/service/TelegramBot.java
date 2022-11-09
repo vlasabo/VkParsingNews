@@ -63,7 +63,8 @@ public class TelegramBot extends TelegramLongPollingBot {
         commands.add(new BotCommand("/show_words", "показать отслеживаемые слова"));
         commands.add(new BotCommand("/add_words", "добавить отслеживаемые слова"));
         commands.add(new BotCommand("/stop_adding", "остановить добавление слов"));
-        execute(new SetMyCommands(commands, new BotCommandScopeDefault(), null));
+        commands.add(new BotCommand("/check_news", "проверить что там в новостях по отслеживаемому"));
+        execute(new SetMyCommands(commands, new BotCommandScopeDefault(), "ru"));
     }
 
     @Override
@@ -94,6 +95,28 @@ public class TelegramBot extends TelegramLongPollingBot {
                         sendMessage(STATUS_FOR_USER, chatId);
                         setUserBotStatus(chatId, BotStatus.WAITING);
                         break;
+                    case "/check_news":
+                        Optional<User> userOpt = userRepository.findById(chatId);
+                        List<String> answerList = new ArrayList<>();
+                        String text;
+                        if (userOpt.isPresent()) {
+                            if (!userOpt.get().getToken().isBlank()) {
+                                try {
+                                    answerList = vkUser.checkNewsVk(userOpt.get().getToken(), userOpt.get().getVkId(), chatId);
+                                    answerList.stream().forEach(s -> sendMessage(s, chatId));
+                                } catch (ClientException | ApiException e) {
+                                    log.error(e.getMessage());
+                                }
+                            } else {
+                                text = "Сначала разрешите доступ к новостям и друзьям. Команда /start";
+                                sendMessage(text, chatId);
+                            }
+                            if (answerList.size() == 0) {
+                                text = "Новостей не нашлось";
+                                sendMessage(text, chatId);
+                            }
+                        }
+                        break;
                 }
             } else if (getUserBotStatus(chatId) == BotStatus.WAITING) {
                 switch (messageText) {
@@ -121,9 +144,9 @@ public class TelegramBot extends TelegramLongPollingBot {
                 try {
                     registerVkUser(chatId, messageText);
                 } catch (ClientException | ApiException e) {
-                   log.error(e.getMessage());
+                    log.error(e.getMessage());
                 }
-                setUserBotStatus(chatId,BotStatus.NORMAL);
+                setUserBotStatus(chatId, BotStatus.NORMAL);
             }
 
         }
@@ -143,7 +166,8 @@ public class TelegramBot extends TelegramLongPollingBot {
                 sendMessage("Вы зарегистрировали персональный ключ", chatId);
             }
         } else {
-            sendMessage("строка должна начинаться с https://oauth.vk.com/blank.html#code=", chatId);
+            sendMessage("строка должна начинаться с https://oauth.vk.com/blank.html#code=\n " +
+                    "Для повторной попытки снова введите команду /start", chatId);
         }
     }
 
@@ -170,6 +194,11 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
     private void sendMessage(String text, Long chatId) {
+        if (text.length() > 4000) {
+            String fullText = text;
+            text = text.substring(fullText.length() - 4000);
+            sendMessage(fullText.substring(0, fullText.length() - 4000), chatId);
+        }
         SendMessage sm = new SendMessage();
         sm.setText(text);
         sm.setChatId(chatId);

@@ -1,5 +1,5 @@
-drop table keywords;
-drop table users;
+--drop table keywords;
+--drop table users;
 
 
 CREATE TABLE IF NOT EXISTS users(
