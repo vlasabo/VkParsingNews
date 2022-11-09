@@ -230,6 +230,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         } catch (TelegramApiException e) {
             throw new RuntimeException(e);
         }
+        log.warn(text.substring(100));
     }
 
     private static BotStatus getUserBotStatus(Long chatId) {
