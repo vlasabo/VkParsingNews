@@ -211,7 +211,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
         text = "Вы успешно зарегистрированы\nДля доступа бота к новостям откройте ссылку " +
                 "https://oauth.vk.com/authorize?client_id=51465704&display=page&redirect_uri=" +
-                "https://oauth.vk.com/blank.html&scope=wall,friends&response_type=code&v=5.131 " +
+                "https://oauth.vk.com/blank.html&scope=wall,friends,offline&response_type=code&v=5.131 " +
                 "и разрешите доступ ТОЛЬКО к друзьям и стене, затем пришлите адрес страницы, на которую вас переадресует\n" +
                 "Это никак не повлияет на безопасность вашего аккаунта";
         sendMessage(text, userId);
