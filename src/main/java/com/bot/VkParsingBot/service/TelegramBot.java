@@ -156,7 +156,9 @@ public class TelegramBot extends TelegramLongPollingBot {
         if (userOpt.isPresent()) {
             if (!userOpt.get().getToken().isBlank()) {
                 try {
-                    answerList = vkUser.checkNewsVk(userOpt.get().getToken(), userOpt.get().getVkId(), chatId);
+                    answerList = vkUser
+                            .checkNewsVk(userOpt.get().getCode(), userOpt.get().getToken(),
+                                    userRepository, userOpt.get().getVkId(), chatId);
                     var sentNewsToUserList = TelegramBot.getSentNews()
                             .getOrDefault(chatId, Collections.emptyList());
                     var resultListToSend = answerList.stream()
@@ -230,7 +232,8 @@ public class TelegramBot extends TelegramLongPollingBot {
         } catch (TelegramApiException e) {
             throw new RuntimeException(e);
         }
-        log.warn(text.substring(101));
+        int logSize = Math.min(text.length(), 101);
+        log.warn("пользователю {} выведено {}", chatId, text.substring(0, logSize));
     }
 
     private static BotStatus getUserBotStatus(Long chatId) {
