@@ -121,7 +121,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                         if (resultWordsListForUser.size() > 0) {
                             sendMessage("Отслеживаемые слова: "
                                     + keywordsCollector.addUsersWord(chatId, resultWordsListForUser), chatId);
-                            sendMessage("можете проверить новости командой /check_news" +
+                            sendMessage("можете проверить новости командой /check_news " +
                                     "или подождать пока я сделаю это за вас и пришлю вам ссылки", chatId);
                             TelegramBot.getWordsForAdding().get(chatId).clear();
                         }
@@ -191,7 +191,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                 user.setVkId((secretMap.keySet().iterator().next()));
                 userRepository.save(user);
                 sendMessage("Вы зарегистрировали персональный ключ. " +
-                        "Начните добавлять слова каомандой /add_words", chatId);
+                        "Начните добавлять слова командой /add_words", chatId);
             }
         } else {
             sendMessage("строка должна начинаться с https://oauth.vk.com/blank.html#code=\n " +
