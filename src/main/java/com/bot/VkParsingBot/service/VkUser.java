@@ -24,6 +24,7 @@ import java.time.ZoneOffset;
 
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.regex.Pattern;
 
 @Component
 @Slf4j
@@ -40,7 +41,7 @@ public class VkUser {
 
     private final VkConfig vkConfig;
 
-    private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+    private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     @Autowired
     KeywordsCollector keywordsCollector;
@@ -117,14 +118,9 @@ public class VkUser {
             String dateString = "";
             StringBuilder source = new StringBuilder();
             source.append(item.getRaw().get("source_id")).append("_").append(item.getRaw().get("post_id"));
+            dateString = LocalDateTime.ofEpochSecond(Long.parseLong(item.getRaw().get("date").toString()),
+                    0, ZoneOffset.ofHours(3)).format(formatter);
             for (var es : item.getRaw().entrySet()) {
-                if (es.getKey().equals("date")) {
-                    long ti = Long.parseLong(es.getValue().toString());
-                    dateString = LocalDateTime.ofEpochSecond(ti, 0, ZoneOffset.ofHours(3)).format(formatter)
-                            .concat(": ");
-                }
-
-
                 if (es.getKey().equals("text")) {
                     String news = es.getValue().toString().toLowerCase();
                     if (news.isBlank()) {
@@ -132,7 +128,8 @@ public class VkUser {
                         source.setLength(0);
                         continue;
                     }
-                    var contain = userWordsList.stream().anyMatch(x -> news.contains(" ".concat(x.toLowerCase()).concat(" ")));
+                    String resultNews = news.toLowerCase().replaceAll("[^A-Za-zА-Яа-я0-9 ]", " ");
+                    var contain = userWordsList.stream().anyMatch(x -> resultNews.contains(x.toLowerCase()));
                     if (contain) {
                         answerList.add(sb.append(dateString)
                                 .append("\n\n").append("https://vk.com/feed?w=wall").append(source).append("\n")
