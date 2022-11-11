@@ -19,6 +19,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.ZoneOffset;
 
 import java.time.format.DateTimeFormatter;
@@ -106,7 +107,7 @@ public class VkUser {
                 .filters(filterList)
                 .returnBanned(false)
                 .count(100)
-                .startFrom("" + LocalDateTime.now().minusDays(7).toEpochSecond(ZoneOffset.ofHours(3)))
+                .startTime((int) LocalDateTime.now().with(LocalTime.MIN).toEpochSecond(ZoneOffset.ofHours(3)))
                 .execute();
 
         var listNews = getResponse.getItems();
