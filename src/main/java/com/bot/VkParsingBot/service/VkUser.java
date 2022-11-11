@@ -127,7 +127,8 @@ public class VkUser {
                         continue;
                     }
                     String resultNews = news.toLowerCase().replaceAll("[^A-Za-zА-Яа-я0-9 ]", " ");
-                    var contain = userWordsList.stream().anyMatch(x -> resultNews.contains(x.toLowerCase()));
+                    var contain = userWordsList.stream().anyMatch(x ->
+                            resultNews.contains(" " + x.toLowerCase() + " "));
                     if (contain) {
                         answerList.add(sb.append(dateString)
                                 .append("\n\n").append("https://vk.com/feed?w=wall").append(source).append("\n")
