@@ -8,7 +8,6 @@ import com.vk.api.sdk.exceptions.ApiException;
 import com.vk.api.sdk.exceptions.ClientException;
 import lombok.Getter;
 import lombok.Setter;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
@@ -26,7 +25,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
-@Slf4j
 public class TelegramBot extends TelegramLongPollingBot {
 
     private static final String STATUS_FOR_USER =
@@ -121,6 +119,8 @@ public class TelegramBot extends TelegramLongPollingBot {
                         if (resultWordsListForUser.size() > 0) {
                             sendMessage("Отслеживаемые слова: "
                                     + keywordsCollector.addUsersWord(chatId, resultWordsListForUser), chatId);
+                            sendMessage("можете проверить новости командой /check_news " +
+                                    "или подождать пока я сделаю это за вас и пришлю вам ссылки", chatId);
                             TelegramBot.getWordsForAdding().get(chatId).clear();
                         }
                         break;
@@ -139,7 +139,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                 try {
                     registerVkUser(chatId, messageText);
                 } catch (ClientException | ApiException e) {
-                    log.error(e.getMessage());
+                    System.out.println(e.getMessage());
                 }
                 setUserBotStatus(chatId, BotStatus.NORMAL);
             }
@@ -150,13 +150,14 @@ public class TelegramBot extends TelegramLongPollingBot {
     public int checkUserNews(Long chatId) {
         Optional<User> userOpt = userRepository.findById(chatId);
         List<String> answerList;
-        String text;
         int replySize = 0;
 
         if (userOpt.isPresent()) {
             if (!userOpt.get().getToken().isBlank()) {
                 try {
-                    answerList = vkUser.checkNewsVk(userOpt.get().getToken(), userOpt.get().getVkId(), chatId);
+                    answerList = vkUser
+                            .checkNewsVk(userOpt.get().getCode(), userOpt.get().getToken(),
+                                    userRepository, userOpt.get().getVkId(), chatId);
                     var sentNewsToUserList = TelegramBot.getSentNews()
                             .getOrDefault(chatId, Collections.emptyList());
                     var resultListToSend = answerList.stream()
@@ -168,7 +169,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                     hashMapSent.put(chatId, resultListToSend);
                     TelegramBot.setSentNews(hashMapSent);
                 } catch (ClientException | ApiException e) {
-                    log.error(e.getMessage());
+                    System.out.println(e.getMessage());
                 }
             }
         }
@@ -186,7 +187,8 @@ public class TelegramBot extends TelegramLongPollingBot {
                 user.setToken(secretMap.entrySet().iterator().next().getValue());
                 user.setVkId((secretMap.keySet().iterator().next()));
                 userRepository.save(user);
-                sendMessage("Вы зарегистрировали персональный ключ", chatId);
+                sendMessage("Вы зарегистрировали персональный ключ. " +
+                        "Начните добавлять слова командой /add_words", chatId);
             }
         } else {
             sendMessage("строка должна начинаться с https://oauth.vk.com/blank.html#code=\n " +
@@ -209,7 +211,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
         text = "Вы успешно зарегистрированы\nДля доступа бота к новостям откройте ссылку " +
                 "https://oauth.vk.com/authorize?client_id=51465704&display=page&redirect_uri=" +
-                "https://oauth.vk.com/blank.html&scope=wall,friends&response_type=code&v=5.131 " +
+                "https://oauth.vk.com/blank.html&scope=wall,friends,offline&response_type=code&v=5.131 " +
                 "и разрешите доступ ТОЛЬКО к друзьям и стене, затем пришлите адрес страницы, на которую вас переадресует\n" +
                 "Это никак не повлияет на безопасность вашего аккаунта";
         sendMessage(text, userId);

@@ -5,6 +5,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
+import java.util.List;
 import java.util.stream.StreamSupport;
 
 
@@ -16,8 +18,14 @@ class SheduleChecks {
     @Autowired
     UserRepository userRepository;
 
-    @Scheduled(fixedDelay = 180000)
+    @Scheduled(fixedDelay = 360000)
     public void checkNews() {
         StreamSupport.stream(userRepository.findAll().spliterator(), false).forEach(x -> bot.checkUserNews(x.getId()));
+        System.gc();
+    }
+
+    @Scheduled(cron = "0 0 0 * * *")
+    public void s() {
+        TelegramBot.setSentNews(new HashMap<>());
     }
 }

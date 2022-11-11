@@ -1,7 +1,6 @@
 --drop table keywords;
 --drop table users;
 
-
 CREATE TABLE IF NOT EXISTS users(
 id LONG PRIMARY KEY,
 first_name VARCHAR(100),
