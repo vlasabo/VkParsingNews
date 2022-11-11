@@ -12,7 +12,6 @@ public class VkParsingBotApplication {
 
 	public static void main(String[] args) {
 		SpringApplication.run(VkParsingBotApplication.class, args);
-		log.warn("work");
 	}
 
 }

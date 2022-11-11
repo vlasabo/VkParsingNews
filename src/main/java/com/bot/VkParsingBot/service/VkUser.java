@@ -14,7 +14,6 @@ import com.vk.api.sdk.objects.UserAuthResponse;
 import com.vk.api.sdk.objects.newsfeed.Filters;
 import lombok.Getter;
 import lombok.Setter;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -24,10 +23,9 @@ import java.time.ZoneOffset;
 
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.regex.Pattern;
+
 
 @Component
-@Slf4j
 public class VkUser {
     @Value("${app.id}")
     private final Integer APP_ID;
@@ -95,7 +93,6 @@ public class VkUser {
                     .count(1)
                     .execute();
         } catch (ApiAuthException e) {
-            log.warn("У пользователя ВКонтакте {} истек срок токена, обновляю", vkId);
             var userSecret = createAndSendTokenAndVkId(code);
             Optional<User> user = userRepository.findById(userId);
             if (user.isPresent()) {

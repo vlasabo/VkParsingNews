@@ -16,8 +16,9 @@ class SheduleChecks {
     @Autowired
     UserRepository userRepository;
 
-    @Scheduled(fixedDelay = 180000)
+    @Scheduled(fixedDelay = 360000)
     public void checkNews() {
         StreamSupport.stream(userRepository.findAll().spliterator(), false).forEach(x -> bot.checkUserNews(x.getId()));
+        System.gc();
     }
 }

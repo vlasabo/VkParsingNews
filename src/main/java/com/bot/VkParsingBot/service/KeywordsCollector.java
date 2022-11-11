@@ -1,6 +1,5 @@
 package com.bot.VkParsingBot.service;
 
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -11,7 +10,6 @@ import java.util.stream.Collectors;
 
 
 @Service
-@Slf4j
 public class KeywordsCollector {
 
     private final JdbcTemplate jdbcTemplate;
@@ -49,10 +47,8 @@ public class KeywordsCollector {
                     jdbcTemplate.update("INSERT  INTO keywords (user_id,word) VALUES(?1,?2)", userId, word);
                 }
             }
-            log.warn("Пользователь {} добавил ключевые слова {}", userId, resultFromList);
             return Arrays.stream(resultString.split("\n")).filter(x -> !x.isBlank()).collect(Collectors.toList());
         } catch (DataAccessException e) {
-            log.error(e.getMessage());
             allWordsFromDb.put(userId, resultFromMap);
             return usersWord(userId);
         }

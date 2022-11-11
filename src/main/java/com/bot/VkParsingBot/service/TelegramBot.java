@@ -8,7 +8,6 @@ import com.vk.api.sdk.exceptions.ApiException;
 import com.vk.api.sdk.exceptions.ClientException;
 import lombok.Getter;
 import lombok.Setter;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
@@ -26,7 +25,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
-@Slf4j
 public class TelegramBot extends TelegramLongPollingBot {
 
     private static final String STATUS_FOR_USER =
@@ -141,7 +139,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                 try {
                     registerVkUser(chatId, messageText);
                 } catch (ClientException | ApiException e) {
-                    log.error(e.getMessage());
+                    System.out.println(e.getMessage());
                 }
                 setUserBotStatus(chatId, BotStatus.NORMAL);
             }
@@ -152,7 +150,6 @@ public class TelegramBot extends TelegramLongPollingBot {
     public int checkUserNews(Long chatId) {
         Optional<User> userOpt = userRepository.findById(chatId);
         List<String> answerList;
-        String text;
         int replySize = 0;
 
         if (userOpt.isPresent()) {
@@ -172,7 +169,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                     hashMapSent.put(chatId, resultListToSend);
                     TelegramBot.setSentNews(hashMapSent);
                 } catch (ClientException | ApiException e) {
-                    log.error(e.getMessage());
+                    System.out.println(e.getMessage());
                 }
             }
         }
@@ -235,8 +232,6 @@ public class TelegramBot extends TelegramLongPollingBot {
         } catch (TelegramApiException e) {
             throw new RuntimeException(e);
         }
-        int logSize = Math.min(text.length(), 101);
-        log.warn("пользователю {} выведено {}", chatId, text.substring(0, logSize));
     }
 
     private static BotStatus getUserBotStatus(Long chatId) {
