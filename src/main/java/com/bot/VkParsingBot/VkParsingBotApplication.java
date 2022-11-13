@@ -8,7 +8,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @SpringBootApplication
 @EnableScheduling
 @Slf4j
-public class VkParsingBotApplication {
+public class VkParsingBotApplication {//TODO: Минорный момент. Пустая строка после последнего метода не нужна
 
 	public static void main(String[] args) {
 		SpringApplication.run(VkParsingBotApplication.class, args);

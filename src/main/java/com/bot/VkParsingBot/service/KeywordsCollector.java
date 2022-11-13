@@ -8,15 +8,22 @@ import org.springframework.stereotype.Service;
 import java.util.*;
 import java.util.stream.Collectors;
 
-
+//TODO: очень не хочу нырять в логику этого сервиса. Искренне советую его переписать с нуля.
+// Можем отдельно обсудить, как можно реализовать это красивее и оптимальнее
 @Service
 public class KeywordsCollector {
 
     private final JdbcTemplate jdbcTemplate;
 
+//    TODO: очень затратное решение. Во-первых, почему jdbcTemplate?
+//     Во-вторых, зачем держать эти данные в оперативке?
+//     Не нужны моментально - тягай из базы для конкретного юзера.
+//     Нужно быстрое получение - подключи кэш второго уровня. Имплементация на твой вкус
     private final HashMap<Long, String> allWordsFromDb = new HashMap<>();
 
+//    TODO: продублирую: https://www.baeldung.com/spring-injection-lombok
     @Autowired
+//    TODO: конструкторы с дефолтным модификатором доступа - зло
     KeywordsCollector(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate; //при создании, затем при любом изменении перечитываем набор данных в джаве
         var wordsRow = jdbcTemplate.queryForRowSet("SELECT * FROM keywords");

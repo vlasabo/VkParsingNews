@@ -25,6 +25,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
+//TODO: предлагаю этот класс разобрать отдельно, тут достаточно много замечаний, боюсь испугать:)
 public class TelegramBot extends TelegramLongPollingBot {
 
     private static final String STATUS_FOR_USER =

@@ -6,6 +6,10 @@ import javax.persistence.*;
 import java.sql.Timestamp;
 import java.util.List;
 
+//TODO: будь осторожнее с аннотацией @Data, в энтити ее вообще совать не стоит:
+// - она включает в себя @EqualsAndHashCode, что не рекомендуется для энтити-классов
+// - она включает в себя только @RequiredArgsConstructor. Энтити требует конструктор без параметров.
+// Т.е. если в этом классе появится какое-нибудь @NonNull поле - все сломается.
 @Data
 @Entity
 @Table(name = "users")
@@ -24,9 +28,11 @@ public class User {
     private String userName;
 
     @Column(name = "registration_date")
+//    TODO: LocalDateTime. ORM обработает, а работать будет удобнее
     private Timestamp registrationDate;
 
     @Column(name = "code")
+//    TODO: не знаю назначение поля, возможно, стоит подумтаь о том, чтобы заменить на Enum
     private String code;
 
     @Column(name = "token")
@@ -36,5 +42,7 @@ public class User {
     private Integer vkId;
 
     @Transient
+//    TODO: не знаю назначение поля, не уверен, что нужен @Transient.
+//     Мб подошла бы отдельная сущность с M2M связью или просто колонка типа текстовый массив
     private List<String> trackedWords;
 }

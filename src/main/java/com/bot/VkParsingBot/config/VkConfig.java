@@ -5,6 +5,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 
+//TODO: весь набор замечаний из BotConfig.
+// По сути, именно конфигурационных классов у тебя и нет.
+// Можно сделать и вынести туда какой-нибудь @EnableScheduling заодно
 @Configuration
 @Data
 @PropertySource("application.properties")

@@ -1,6 +1,8 @@
 --drop table keywords;
 --drop table users;
-
+--TODO: Советую освоить инструменты для миграций.
+--Flyway - лично мой любимец,
+--liquibase - как альтернативный популярный инструмент
 CREATE TABLE IF NOT EXISTS users(
 id LONG PRIMARY KEY,
 first_name VARCHAR(100),

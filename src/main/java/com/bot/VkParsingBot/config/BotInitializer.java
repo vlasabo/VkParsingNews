@@ -10,6 +10,9 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.updatesreceivers.DefaultBotSession;
 
 @Component
+//TODO: я бы вынес этот класс из пакета конфигурации. Вполне можно засунуть его в пакет init, например
+//TODO: Общее замечание: не рекомендую инжектить в поля. ЛУчше пользоваться инжектом в конструктор
+//https://www.baeldung.com/spring-injection-lombok
 public class BotInitializer {
 
     @Autowired
