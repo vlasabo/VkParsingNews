@@ -1,14 +1,15 @@
 package com.bot.VkParsingBot.service;
 
-import com.bot.VkParsingBot.config.BotConfig;
-import com.bot.VkParsingBot.config.BotStatus;
-import com.bot.VkParsingBot.model.*;
-
+import com.bot.VkParsingBot.config.BotProperties;
+import com.bot.VkParsingBot.model.BotStatus;
+import com.bot.VkParsingBot.model.User;
+import com.bot.VkParsingBot.repository.UserRepository;
 import com.vk.api.sdk.exceptions.ApiException;
 import com.vk.api.sdk.exceptions.ClientException;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.commands.SetMyCommands;
@@ -19,12 +20,12 @@ import org.telegram.telegrambots.meta.api.objects.commands.BotCommand;
 import org.telegram.telegrambots.meta.api.objects.commands.scope.BotCommandScopeDefault;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
-import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
+@EnableConfigurationProperties(value = BotProperties.class)
 public class TelegramBot extends TelegramLongPollingBot {
 
     private static final String STATUS_FOR_USER =
@@ -36,27 +37,22 @@ public class TelegramBot extends TelegramLongPollingBot {
                     "Для окончания режима записи испрользуйте команду /stop_adding";
     @Autowired
     private UserRepository userRepository;
-
     @Autowired
     private KeywordsCollector keywordsCollector;
-    private final BotConfig botConfig;
-
+    private final BotProperties botProperties;
     @Getter
     private static HashMap<Long, BotStatus> userStatus;
-
     @Getter
     private static HashMap<Long, List<String>> wordsForAdding;
-
     @Getter
     @Setter
     private static HashMap<Long, List<String>> sentNews;
-
     @Autowired
     VkUser vkUser;
 
     @Autowired
-    public TelegramBot(BotConfig botConfig) throws TelegramApiException {
-        this.botConfig = botConfig;
+    public TelegramBot(BotProperties botProperties) throws TelegramApiException {
+        this.botProperties = botProperties;
         userStatus = new HashMap<>();
         wordsForAdding = new HashMap<>();
         sentNews = new HashMap<>();
@@ -72,12 +68,12 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     @Override
     public String getBotUsername() {
-        return botConfig.getBotName();
+        return botProperties.getName();
     }
 
     @Override
     public String getBotToken() {
-        return botConfig.getToken();
+        return botProperties.getToken();
     }
 
     @Override
@@ -206,7 +202,7 @@ public class TelegramBot extends TelegramLongPollingBot {
             user.setUserName(chat.getUserName());
             user.setFirstName(chat.getFirstName());
             user.setLastName(chat.getLastName());
-            user.setRegistrationDate(Timestamp.valueOf(LocalDateTime.now()));
+            user.setRegistrationDate(LocalDateTime.now());
             userRepository.save(user);
         }
         text = "Вы успешно зарегистрированы\nДля доступа бота к новостям откройте ссылку " +

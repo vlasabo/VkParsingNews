@@ -1,13 +1,10 @@
 package com.bot.VkParsingBot.model;
 
-import lombok.Data;
-
 import javax.persistence.*;
 
-@Data
 @Entity
 @Table(name = "keywords")
-public class UserKeywords {
+public class Keywords {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "id", nullable = false)

@@ -1,8 +1,8 @@
 package com.bot.VkParsingBot.service;
 
-import com.bot.VkParsingBot.config.VkConfig;
+import com.bot.VkParsingBot.config.VkProperties;
 import com.bot.VkParsingBot.model.User;
-import com.bot.VkParsingBot.model.UserRepository;
+import com.bot.VkParsingBot.repository.UserRepository;
 import com.vk.api.sdk.client.TransportClient;
 import com.vk.api.sdk.client.VkApiClient;
 import com.vk.api.sdk.client.actors.UserActor;
@@ -15,20 +15,20 @@ import com.vk.api.sdk.objects.newsfeed.Filters;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneOffset;
-
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 
 @Component
+@EnableConfigurationProperties(value = VkProperties.class)
 public class VkUser {
-    @Value("${app.id}")
+
     private final Integer APP_ID;
     private static final String REDIRECT_URI = "https://oauth.vk.com/blank.html";
 
@@ -38,7 +38,7 @@ public class VkUser {
     @Getter
     private String token;
 
-    private final VkConfig vkConfig;
+    private final VkProperties vkProperties;
 
     private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
@@ -46,10 +46,10 @@ public class VkUser {
     KeywordsCollector keywordsCollector;
 
     @Autowired
-    public VkUser(VkConfig vkConfig) {
-        this.vkConfig = vkConfig;
-        this.APP_CODE = this.vkConfig.getCode();
-        this.APP_ID = this.vkConfig.getId();
+    public VkUser(VkProperties vkProperties) {
+        this.vkProperties = vkProperties;
+        this.APP_CODE = this.vkProperties.getCode();
+        this.APP_ID = this.vkProperties.getId();
     }
 
     public Map<Integer, String> createAndSendTokenAndVkId(String code) throws ClientException, ApiException {
