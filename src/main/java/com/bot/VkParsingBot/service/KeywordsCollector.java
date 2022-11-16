@@ -26,8 +26,8 @@ public class KeywordsCollector {
             keyword.setWord(word);
             keyword.setUserId(userId);
             resultList.add(keyword);
-            keywordsRepository.save(keyword);
         }
+        keywordsRepository.saveAll(resultList);
 
         return usersWord(userId);
     }
