@@ -86,7 +86,6 @@ public class VkUser {
 
         var filterList = new ArrayList<Filters>();
         filterList.add(Filters.POST);
-        //filterList.add(Filters.NOTE);
         try {
             var testResponse = vk.newsfeed()
                     .get(actor)
