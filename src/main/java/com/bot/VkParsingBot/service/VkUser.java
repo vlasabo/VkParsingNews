@@ -1,7 +1,9 @@
 package com.bot.VkParsingBot.service;
 
 import com.bot.VkParsingBot.config.VkProperties;
+import com.bot.VkParsingBot.model.Sent;
 import com.bot.VkParsingBot.model.User;
+import com.bot.VkParsingBot.repository.SentRepository;
 import com.bot.VkParsingBot.repository.UserRepository;
 import com.vk.api.sdk.client.TransportClient;
 import com.vk.api.sdk.client.VkApiClient;
@@ -24,7 +26,7 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
-
+//TODO: разобрать на VkUser (model), VkService, etc
 @Component
 @EnableConfigurationProperties(value = VkProperties.class)
 public class VkUser {
@@ -39,6 +41,7 @@ public class VkUser {
     private String token;
 
     private final VkProperties vkProperties;
+    private final SentRepository sentRepository;
 
     private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
@@ -46,10 +49,12 @@ public class VkUser {
     KeywordsCollector keywordsCollector;
 
     @Autowired
-    public VkUser(VkProperties vkProperties) {
+    public VkUser(VkProperties vkProperties, SentRepository sentRepository) {
         this.vkProperties = vkProperties;
+        this.sentRepository = sentRepository;
         this.APP_CODE = this.vkProperties.getCode();
         this.APP_ID = this.vkProperties.getId();
+
     }
 
     public Map<Integer, String> createAndSendTokenAndVkId(String code) throws ClientException, ApiException {
@@ -115,6 +120,13 @@ public class VkUser {
             String dateString = "";
             StringBuilder source = new StringBuilder();
             source.append(item.getRaw().get("source_id")).append("_").append(item.getRaw().get("post_id"));
+            String sentNewsData = source.toString();
+            if (sentRepository.findAll()
+                    .stream()
+                    .anyMatch(x ->
+                            (x.getSentNewsData().equals(sentNewsData) && x.getUserId().equals(userId)))) {
+                continue;
+            }
             dateString = LocalDateTime.ofEpochSecond(Long.parseLong(item.getRaw().get("date").toString()),
                     0, ZoneOffset.ofHours(3)).format(formatter);
             for (var es : item.getRaw().entrySet()) {
@@ -135,6 +147,10 @@ public class VkUser {
                                 .append("\n\n").toString());
                         sb.setLength(0);
                         source.setLength(0);
+                        Sent sent = new Sent();
+                        sent.setSentNewsData(sentNewsData);
+                        sent.setUserId(userId);
+                        sentRepository.save(sent);
                     }
                     dateString = "";
                     source.setLength(0);
