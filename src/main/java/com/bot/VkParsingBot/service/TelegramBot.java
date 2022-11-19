@@ -3,7 +3,6 @@ package com.bot.VkParsingBot.service;
 import com.bot.VkParsingBot.config.BotProperties;
 import com.bot.VkParsingBot.model.BotStatus;
 import com.bot.VkParsingBot.model.User;
-import com.bot.VkParsingBot.repository.UserRepository;
 import com.vk.api.sdk.exceptions.ApiException;
 import com.vk.api.sdk.exceptions.ClientException;
 import lombok.Getter;
@@ -35,8 +34,8 @@ public class TelegramBot extends TelegramLongPollingBot {
                     "В этом случае вы не получите оповещение о посте \"Сегодня был хороший ДЕНЬ\"\n" +
                     "Если же ввести \"День\" и отправить, затем \"Рождения\" и снова отправить - получите.\n\n" +
                     "Для окончания режима записи испрользуйте команду /stop_adding";
-    @Autowired
-    private UserRepository userRepository;
+
+    private final UserService userService;
     @Autowired
     private KeywordsCollector keywordsCollector;
     private final BotProperties botProperties;
@@ -47,12 +46,14 @@ public class TelegramBot extends TelegramLongPollingBot {
     @Getter
     @Setter
     private static HashMap<Long, List<String>> sentNews;
-    @Autowired
-    VkUser vkUser;
+
+    private final VkUser vkUser;
 
     @Autowired
-    public TelegramBot(BotProperties botProperties) throws TelegramApiException {
+    public TelegramBot(UserService userService, BotProperties botProperties, VkUser vkUser) throws TelegramApiException {
+        this.userService = userService;
         this.botProperties = botProperties;
+        this.vkUser = vkUser;
         userStatus = new HashMap<>();
         wordsForAdding = new HashMap<>();
         sentNews = new HashMap<>();
@@ -95,7 +96,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                         setUserBotStatus(chatId, BotStatus.WAITING);
                         break;
                     case "/check_news":
-                        if (userRepository.findById(chatId).isPresent()) {
+                        if (userService.findById(chatId).isPresent()) {
                             if (checkUserNews(chatId) == 0) {
                                 sendMessage("Новостей не нашлось", chatId);
                             }
@@ -144,7 +145,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
     public int checkUserNews(Long chatId) {
-        Optional<User> userOpt = userRepository.findById(chatId);
+        Optional<User> userOpt = userService.findById(chatId);
         List<String> answerList;
         int replySize = 0;
 
@@ -152,8 +153,7 @@ public class TelegramBot extends TelegramLongPollingBot {
             if (!userOpt.get().getToken().isBlank()) {
                 try {
                     answerList = vkUser
-                            .checkNewsVk(userOpt.get().getCode(), userOpt.get().getToken(),
-                                    userRepository, userOpt.get().getVkId(), chatId);
+                            .checkNewsVk(userOpt.get().getCode(), userOpt.get().getToken(), userOpt.get().getVkId(), chatId);
                     var sentNewsToUserList = TelegramBot.getSentNews()
                             .getOrDefault(chatId, Collections.emptyList());
                     var resultListToSend = answerList.stream()
@@ -175,14 +175,14 @@ public class TelegramBot extends TelegramLongPollingBot {
     private void registerVkUser(Long chatId, String messageText) throws ClientException, ApiException {
         if (messageText.contains("https://oauth.vk.com/blank.html#code=")) {
             String code = messageText.replace("https://oauth.vk.com/blank.html#code=", "");
-            Optional<User> userOpt = userRepository.findById(chatId);
+            Optional<User> userOpt = userService.findById(chatId);
             if (userOpt.isPresent()) {
                 var user = userOpt.get();
                 user.setCode(code);
                 var secretMap = vkUser.createAndSendTokenAndVkId(code);
                 user.setToken(secretMap.entrySet().iterator().next().getValue());
                 user.setVkId((secretMap.keySet().iterator().next()));
-                userRepository.save(user);
+                userService.save(user);
                 sendMessage("Вы зарегистрировали персональный ключ. " +
                         "Начните добавлять слова командой /add_words", chatId);
             }
@@ -195,7 +195,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     private void newBotUser(Update update) {
         String text;
         Long userId = update.getMessage().getChatId();
-        if (userRepository.findById(userId).isEmpty()) {
+        if (userService.findById(userId).isEmpty()) {
             Chat chat = update.getMessage().getChat();
             User user = new User();
             user.setId(userId);
@@ -203,7 +203,7 @@ public class TelegramBot extends TelegramLongPollingBot {
             user.setFirstName(chat.getFirstName());
             user.setLastName(chat.getLastName());
             user.setRegistrationDate(LocalDateTime.now());
-            userRepository.save(user);
+            userService.save(user);
         }
         text = "Вы успешно зарегистрированы\nДля доступа бота к новостям откройте ссылку " +
                 "https://oauth.vk.com/authorize?client_id=51465704&display=page&redirect_uri=" +

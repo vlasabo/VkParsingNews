@@ -4,7 +4,6 @@ import com.bot.VkParsingBot.config.VkProperties;
 import com.bot.VkParsingBot.model.Sent;
 import com.bot.VkParsingBot.model.User;
 import com.bot.VkParsingBot.repository.SentRepository;
-import com.bot.VkParsingBot.repository.UserRepository;
 import com.vk.api.sdk.client.TransportClient;
 import com.vk.api.sdk.client.VkApiClient;
 import com.vk.api.sdk.client.actors.UserActor;
@@ -14,8 +13,6 @@ import com.vk.api.sdk.exceptions.ClientException;
 import com.vk.api.sdk.httpclient.HttpTransportClient;
 import com.vk.api.sdk.objects.UserAuthResponse;
 import com.vk.api.sdk.objects.newsfeed.Filters;
-import lombok.Getter;
-import lombok.Setter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.stereotype.Component;
@@ -33,39 +30,30 @@ public class VkUser {
 
     private final Integer APP_ID;
     private static final String REDIRECT_URI = "https://oauth.vk.com/blank.html";
-
     private final String APP_CODE;
-    @Setter
-    private String code;
-    @Getter
-    private String token;
-
-    private final VkProperties vkProperties;
     private final SentRepository sentRepository;
-
     private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    private final KeywordsCollector keywordsCollector;
+    private final UserService userService;
 
     @Autowired
-    KeywordsCollector keywordsCollector;
-
-    @Autowired
-    public VkUser(VkProperties vkProperties, SentRepository sentRepository) {
-        this.vkProperties = vkProperties;
+    public VkUser(VkProperties vkProperties, SentRepository sentRepository,
+                  KeywordsCollector keywordsCollector, UserService userService) {
         this.sentRepository = sentRepository;
-        this.APP_CODE = this.vkProperties.getCode();
-        this.APP_ID = this.vkProperties.getId();
-
+        this.keywordsCollector = keywordsCollector;
+        this.userService = userService;
+        this.APP_CODE = vkProperties.getCode();
+        this.APP_ID = vkProperties.getId();
     }
 
     public Map<Integer, String> createAndSendTokenAndVkId(String code) throws ClientException, ApiException {
-        this.code = code;
         TransportClient transportClient = new HttpTransportClient();
         VkApiClient vk = new VkApiClient(transportClient);
         UserAuthResponse authResponse = vk.oAuth()
                 .userAuthorizationCodeFlow(APP_ID, APP_CODE, REDIRECT_URI, code)
                 .execute();
         var actor = new UserActor(authResponse.getUserId(), authResponse.getAccessToken());
-        token = actor.getAccessToken();
+        String token = actor.getAccessToken();
         Integer idVk = actor.getId();
         Map<Integer, String> userSecret = new HashMap<>();
         userSecret.put(idVk, token);
@@ -76,8 +64,7 @@ public class VkUser {
         return new UserActor(vkId, token);
     }
 
-    public List<String> checkNewsVk(String code, String token, UserRepository userRepository,
-                                    Integer vkId, Long userId) throws ClientException, ApiException {
+    public List<String> checkNewsVk(String code, String token, Integer vkId, Long userId) throws ClientException, ApiException {
         var answerList = new ArrayList<String>();
         TransportClient transportClient = new HttpTransportClient();
         VkApiClient vk = new VkApiClient(transportClient);
@@ -92,17 +79,17 @@ public class VkUser {
         var filterList = new ArrayList<Filters>();
         filterList.add(Filters.POST);
         try {
-            var testResponse = vk.newsfeed()
+            vk.newsfeed()
                     .get(actor)
                     .returnBanned(false)
                     .count(1)
                     .execute();
         } catch (ApiAuthException e) {
             var userSecret = createAndSendTokenAndVkId(code);
-            Optional<User> user = userRepository.findById(userId);
+            Optional<User> user = userService.findById(userId);
             if (user.isPresent()) {
                 user.get().setToken(userSecret.get(vkId));
-                userRepository.save(user.get());
+                userService.save(user.get());
             }
         }
 
@@ -117,7 +104,6 @@ public class VkUser {
         var listNews = getResponse.getItems();
 
         for (var item : listNews) {
-            String dateString = "";
             StringBuilder source = new StringBuilder();
             source.append(item.getRaw().get("source_id")).append("_").append(item.getRaw().get("post_id"));
             String sentNewsData = source.toString();
@@ -127,7 +113,7 @@ public class VkUser {
                             (x.getSentNewsData().equals(sentNewsData) && x.getUserId().equals(userId)))) {
                 continue;
             }
-            dateString = LocalDateTime.ofEpochSecond(Long.parseLong(item.getRaw().get("date").toString()),
+            String dateString = LocalDateTime.ofEpochSecond(Long.parseLong(item.getRaw().get("date").toString()),
                     0, ZoneOffset.ofHours(3)).format(formatter);
             for (var es : item.getRaw().entrySet()) {
                 if (es.getKey().equals("text")) {

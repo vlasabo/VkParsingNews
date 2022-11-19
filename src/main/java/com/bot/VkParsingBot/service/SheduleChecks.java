@@ -1,22 +1,19 @@
 package com.bot.VkParsingBot.service;
 
-import com.bot.VkParsingBot.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 
 @Service
+@RequiredArgsConstructor
 class SheduleChecks {
-    @Autowired
-    TelegramBot bot;
-
-    @Autowired
-    UserRepository userRepository;
+    private final TelegramBot bot;
+    private final UserService userService;
 
     @Scheduled(fixedDelay = 360000)
     public void checkNews() {
-        userRepository.findAll()
+        userService.findAll()
                 .forEach(x -> bot.checkUserNews(x.getId()));
     }
 }
