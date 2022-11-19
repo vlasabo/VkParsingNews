@@ -62,10 +62,15 @@ public class VkService {
                     String resultNews = news.toLowerCase().replaceAll("[^A-Za-zА-Яа-я0-9 ]", " ");
                     var contain = userWordsList.stream().anyMatch(x -> resultNews.contains(" " + x.toLowerCase() + " "));
                     if (contain) {
-                        answerList.add(sb.append(dateString).append("\n\n").append("https://vk.com/feed?w=wall").append(source).append("\n").append(es.getValue().toString().replace("\\n", "\n")).append("\n\n").toString());
+                        answerList.add(sb.append(dateString)
+                                .append("\n\n")
+                                .append("https://vk.com/feed?w=wall")
+                                .append(source).append("\n")
+                                .append(es.getValue().toString().replace("\\n", "\n"))
+                                .append("\n\n").toString());
                         sb.setLength(0);
                         source.setLength(0);
-                        Sent sent = new Sent();
+                        Sent sent = new Sent(); //TODO: добавлять в отправленные после фактической отправки, а не добавления в список К отправке
                         sent.setSentNewsData(sentNewsData);
                         sent.setUserId(userId);
                         sentService.save(sent);
