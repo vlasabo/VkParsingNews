@@ -48,12 +48,14 @@ public class TelegramBot extends TelegramLongPollingBot {
     private static HashMap<Long, List<String>> sentNews;
 
     private final VkUser vkUser;
+    private final VkService vkService;
 
     @Autowired
-    public TelegramBot(UserService userService, BotProperties botProperties, VkUser vkUser) throws TelegramApiException {
+    public TelegramBot(UserService userService, BotProperties botProperties, VkUser vkUser, VkService vkService) throws TelegramApiException {
         this.userService = userService;
         this.botProperties = botProperties;
         this.vkUser = vkUser;
+        this.vkService = vkService;
         userStatus = new HashMap<>();
         wordsForAdding = new HashMap<>();
         sentNews = new HashMap<>();
@@ -152,8 +154,8 @@ public class TelegramBot extends TelegramLongPollingBot {
         if (userOpt.isPresent()) {
             if (!userOpt.get().getToken().isBlank()) {
                 try {
-                    answerList = vkUser
-                            .checkNewsVk(userOpt.get().getCode(), userOpt.get().getToken(), userOpt.get().getVkId(), chatId);
+                    answerList = vkService
+                            .checkNewsVk(userOpt.get().getToken(), userOpt.get().getVkId(), chatId);
                     var sentNewsToUserList = TelegramBot.getSentNews()
                             .getOrDefault(chatId, Collections.emptyList());
                     var resultListToSend = answerList.stream()
