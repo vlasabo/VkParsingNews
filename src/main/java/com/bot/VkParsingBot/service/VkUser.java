@@ -17,7 +17,7 @@ import java.util.Map;
 
 
 @Component
-@EnableConfigurationProperties(value = VkProperties.class)
+@EnableConfigurationProperties(value = VkProperties.class) //TODO: вынести проперти отдельным классом
 public class VkUser {
 
     private final Integer APP_ID;
@@ -25,14 +25,14 @@ public class VkUser {
     private final String APP_CODE;
 
     @Autowired
-    public VkUser(VkProperties vkProperties) {
+    public VkUser(VkProperties vkProperties) { //TODO: убрать константы, создать поле
         this.APP_CODE = vkProperties.getCode();
         this.APP_ID = vkProperties.getId();
     }
 
     public Map<Integer, String> createAndSendTokenAndVkId(String code) throws ClientException, ApiException {
         TransportClient transportClient = new HttpTransportClient();
-        VkApiClient vk = new VkApiClient(transportClient);
+        VkApiClient vk = new VkApiClient(transportClient); //TODO: VkApiClient сделать отдельным бином и не создавать его каждый раз
         UserAuthResponse authResponse = vk.oAuth()
                 .userAuthorizationCodeFlow(APP_ID, APP_CODE, REDIRECT_URI, code)
                 .execute();

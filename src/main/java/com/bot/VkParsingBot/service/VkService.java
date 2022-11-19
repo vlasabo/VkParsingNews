@@ -38,12 +38,12 @@ public class VkService {
         }
         TransportClient transportClient = new HttpTransportClient();
         VkApiClient vk = new VkApiClient(transportClient);
-        UserActor actor = vkUser.createActorFromToken(token, vkId);
+        UserActor actor = vkUser.createActorFromToken(token, vkId); //TODO: вынести получение пользователя в отдельный класс
         var filterList = getFilters();
         var listNews = getNews(vk, actor, filterList);
         StringBuilder sb = new StringBuilder();
 
-        for (var item : listNews) {
+        for (var item : listNews) { //TODO: попробовать переделать на стрим
             StringBuilder source = new StringBuilder();
             source.append(item.getRaw().get("source_id")).append("_").append(item.getRaw().get("post_id"));
             String sentNewsData = source.toString();
@@ -52,7 +52,7 @@ public class VkService {
             }
             String dateString = getDateAsString(item);
             for (var es : item.getRaw().entrySet()) {
-                if (es.getKey().equals("text")) {
+                if (es.getKey().equals("text")) { //TODO: проверить везде ли есть поле текст  при фильтре
                     String news = es.getValue().toString().toLowerCase();
                     if (news.isBlank()) {
                         dateString = "";
@@ -104,8 +104,6 @@ public class VkService {
 
 
     private List<Filters> getFilters() {
-        var filterList = new ArrayList<Filters>();
-        filterList.add(Filters.POST);
-        return filterList;
+        return List.of(Filters.POST);
     }
 }

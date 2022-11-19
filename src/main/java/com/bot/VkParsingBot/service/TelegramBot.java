@@ -40,7 +40,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     private KeywordsCollector keywordsCollector;
     private final BotProperties botProperties;
     @Getter
-    private static HashMap<Long, BotStatus> userStatus;
+    private static HashMap<Long, BotStatus> userStatus; //TODO change Map
     @Getter
     private static HashMap<Long, List<String>> wordsForAdding;
     @Getter
@@ -59,7 +59,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         userStatus = new HashMap<>();
         wordsForAdding = new HashMap<>();
         sentNews = new HashMap<>();
-        List<BotCommand> commands = new ArrayList<>();
+        List<BotCommand> commands = new ArrayList<>(); //TODO: вынести команды
         commands.add(new BotCommand("/start", "регистрация"));
         commands.add(new BotCommand("/show_words", "показать отслеживаемые слова"));
         commands.add(new BotCommand("/add_words", "добавить отслеживаемые слова"));
@@ -110,11 +110,11 @@ public class TelegramBot extends TelegramLongPollingBot {
                         keywordsCollector.clearWords(chatId);
                         sendMessage("Все слова очищены", chatId);
                 }
-            } else if (getUserBotStatus(chatId) == BotStatus.WAITING) {
+            } else if (getUserBotStatus(chatId) == BotStatus.WAITING) { //TODO: проверка статуса бота вынести в отдельный метод, свитч-кейс
                 switch (messageText) {
                     case "/stop_adding":
                         setUserBotStatus(chatId, BotStatus.NORMAL);
-                        var resultWordsListForUser = TelegramBot.getWordsForAdding().get(chatId);
+                        var resultWordsListForUser = TelegramBot.getWordsForAdding().get(chatId); //TODO: CopyOnWriteArrayList  or ConcurrentHashSet
                         if (resultWordsListForUser.size() > 0) {
                             sendMessage("Отслеживаемые слова: "
                                     + keywordsCollector.addUsersWord(chatId, resultWordsListForUser), chatId);
@@ -232,8 +232,8 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
     }
 
-    private static BotStatus getUserBotStatus(Long chatId) {
-        HashMap<Long, BotStatus> userSettings = TelegramBot.getUserStatus();
+    private static BotStatus getUserBotStatus(Long chatId) { //TODO: попробовать положить соответствие статуса в noSQL
+        HashMap<Long, BotStatus> userSettings = TelegramBot.getUserStatus(); //TODO: ConcurrentHashMap
         BotStatus settings = userSettings.get(chatId);
         if (settings == null) {
             return BotStatus.NORMAL;
