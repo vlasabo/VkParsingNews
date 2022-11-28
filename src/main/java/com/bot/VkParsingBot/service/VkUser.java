@@ -36,17 +36,11 @@ public class VkUser {
         UserAuthResponse authResponse = vk.oAuth()
                 .userAuthorizationCodeFlow(APP_ID, APP_CODE, REDIRECT_URI, code)
                 .execute();
-        var actor = createActorFromToken(authResponse.getAccessToken(), authResponse.getUserId());
+        var actor = new UserActor(authResponse.getUserId(), authResponse.getAccessToken());
         String token = actor.getAccessToken();
         Integer idVk = actor.getId();
         Map<Integer, String> userSecret = new HashMap<>();
         userSecret.put(idVk, token);
         return userSecret;
     }
-
-    public UserActor createActorFromToken(String token, Integer vkId) {
-        return new UserActor(vkId, token);
-    }
-
-
 }

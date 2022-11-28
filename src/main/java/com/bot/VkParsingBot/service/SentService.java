@@ -5,16 +5,14 @@ import com.bot.VkParsingBot.repository.SentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+
 @Service
 @RequiredArgsConstructor
 public class SentService {
     private final SentRepository sentRepository;
 
     public boolean checkSentNewsForUser(Long userId, String news) {
-        return sentRepository.findAll()
-                .stream()
-                .anyMatch(x ->
-                        (x.getSentNewsData().equals(news) && x.getUserId().equals(userId)));
+        return sentRepository.findBySentNewsDataAndUserId(news, userId).isEmpty();
     }
 
     public void save(Sent sent) {

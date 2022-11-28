@@ -88,7 +88,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                 switch (messageText) {
                     case "/start":
                         newBotUser(update);
-                        setUserBotStatus(chatId, BotStatus.REGISTRATION_ATTEMP);
+                        setUserBotStatus(chatId, BotStatus.REGISTRATION_ATTEMPT);
                         break;
                     case "/show_words":
                         sendMessage(keywordsCollector.usersWord(chatId).toString(), chatId);
@@ -134,7 +134,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                         TelegramBot.getWordsForAdding().put(chatId, userWordList);
                 }
 
-            } else if (getUserBotStatus(chatId) == BotStatus.REGISTRATION_ATTEMP) {
+            } else if (getUserBotStatus(chatId) == BotStatus.REGISTRATION_ATTEMPT) {
                 try {
                     registerVkUser(chatId, messageText);
                 } catch (ClientException | ApiException e) {
