@@ -22,10 +22,14 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.stream.Collectors;
+
+import static com.bot.VkParsingBot.model.BotStatus.WAITING;
 
 @Service
 @EnableConfigurationProperties(value = BotProperties.class)
@@ -43,9 +47,11 @@ public class TelegramBot extends TelegramLongPollingBot {
     private final KeywordsCollector keywordsCollector;
     private final BotProperties botProperties;
     @Getter
-    private static HashMap<Long, BotStatus> userStatus; //TODO change Map
+    private static Map<Long, BotStatus> userStatus;
+    //добавляемое количество слов не будет большим, порядок не важен, одинаковые слова не нужны,
+    // так что эта реализация вместо CopyOnWriteArrayList
     @Getter
-    private static HashMap<Long, List<String>> wordsForAdding;
+    private static Map<Long, CopyOnWriteArraySet<String>> wordsForAdding;
     private final VkUser vkUser;
     private final VkService vkService;
     private final SentRepository sentRepository;
@@ -59,16 +65,10 @@ public class TelegramBot extends TelegramLongPollingBot {
         this.vkUser = vkUser;
         this.vkService = vkService;
         this.sentRepository = sentRepository;
-        userStatus = new HashMap<>();
-        wordsForAdding = new HashMap<>();
-        List<BotCommand> commands = new ArrayList<>(); //TODO: вынести команды
-        commands.add(new BotCommand("/start", "регистрация"));
-        commands.add(new BotCommand("/show_words", "показать отслеживаемые слова"));
-        commands.add(new BotCommand("/add_words", "добавить отслеживаемые слова"));
-        commands.add(new BotCommand("/stop_adding", "остановить добавление слов"));
-        commands.add(new BotCommand("/delete_all_words", "очистить список отслеживаемых слов"));
-        commands.add(new BotCommand("/check_news", "проверить что там в новостях по отслеживаемому"));
-        execute(new SetMyCommands(commands, new BotCommandScopeDefault(), "ru"));
+        userStatus = new ConcurrentHashMap<>();
+        wordsForAdding = new ConcurrentHashMap<>();
+
+        execute(new SetMyCommands(getBotCommands(), new BotCommandScopeDefault(), "ru"));
     }
 
     @Override
@@ -86,67 +86,78 @@ public class TelegramBot extends TelegramLongPollingBot {
         if (update.hasMessage() && update.getMessage().hasText()) {
             Long chatId = update.getMessage().getChatId();
             String messageText = update.getMessage().getText();
-            if (getUserBotStatus(chatId) == BotStatus.NORMAL) {
-                switch (messageText) {
-                    case "/start":
-                        newBotUser(update);
-                        setUserBotStatus(chatId, BotStatus.REGISTRATION_ATTEMPT);
-                        break;
-                    case "/show_words":
-                        sendMessage(keywordsCollector.usersWord(chatId).toString(), chatId);
-                        break;
-                    case "/add_words":
-                        sendMessage(STATUS_FOR_USER, chatId);
-                        setUserBotStatus(chatId, BotStatus.WAITING);
-                        break;
-                    case "/check_news":
-                        if (userService.findById(chatId).isPresent()) {
-                            if (checkUserNews(chatId) == 0) {
-                                sendMessage("Новостей не нашлось", chatId);
+            switch (getUserBotStatus(chatId)) {
+                case NORMAL:
+                    switch (messageText) {
+                        case "/start":
+                            newBotUser(update);
+                            setUserBotStatus(chatId, BotStatus.REGISTRATION_ATTEMPT);
+                            break;
+                        case "/show_words":
+                            sendMessage(keywordsCollector.usersWord(chatId).toString(), chatId);
+                            break;
+                        case "/add_words":
+                            sendMessage(STATUS_FOR_USER, chatId);
+                            setUserBotStatus(chatId, WAITING);
+                            break;
+                        case "/check_news":
+                            if (userService.findById(chatId).isPresent()) {
+                                if (checkUserNews(chatId) == 0) {
+                                    sendMessage("Новостей не нашлось", chatId);
+                                }
+                            } else {
+                                sendMessage("Сначала разрешите доступ к новостям и друзьям. Команда /start", chatId);
                             }
-                        } else {
-                            sendMessage("Сначала разрешите доступ к новостям и друзьям. Команда /start", chatId);
-                        }
-                        break;
-                    case "/delete_all_words":
-                        keywordsCollector.clearWords(chatId);
-                        sendMessage("Все слова очищены", chatId);
-                }
-            } else if (getUserBotStatus(chatId) == BotStatus.WAITING) { //TODO: проверка статуса бота вынести в отдельный метод, свитч-кейс
-                switch (messageText) {
-                    case "/stop_adding":
+                            break;
+                        case "/delete_all_words":
+                            keywordsCollector.clearWords(chatId);
+                            sendMessage("Все слова очищены", chatId);
+                    }
+                    break;
+                case WAITING:
+                    if ("/stop_adding".equals(messageText)) {
                         setUserBotStatus(chatId, BotStatus.NORMAL);
-                        var resultWordsListForUser = TelegramBot.getWordsForAdding().get(chatId); //TODO: CopyOnWriteArrayList  or ConcurrentHashSet
+                        var resultWordsListForUser = TelegramBot.getWordsForAdding().get(chatId);
                         if (resultWordsListForUser.size() > 0) {
-                            sendMessage("Отслеживаемые слова: "
-                                    + keywordsCollector.addUsersWord(chatId, resultWordsListForUser), chatId);
-                            sendMessage("можете проверить новости командой /check_news " +
-                                    "или подождать пока я сделаю это за вас и пришлю вам ссылки", chatId);
-                            TelegramBot.getWordsForAdding().get(chatId).clear();
+                            writeWordsForUser(chatId, resultWordsListForUser);
                         }
-                        break;
-                    default:
-                        List<String> userWordList;
-                        if (TelegramBot.getWordsForAdding().containsKey(chatId)) {
-                            userWordList = TelegramBot.getWordsForAdding().get(chatId);
-                        } else {
-                            userWordList = new ArrayList<>();
-                        }
-                        userWordList.add(messageText.toLowerCase().replace("\n", " "));
-                        TelegramBot.getWordsForAdding().put(chatId, userWordList);
-                }
+                    } else {
+                        addWordsForUser(chatId, messageText);
+                    }
+                    break;
+                case REGISTRATION_ATTEMPT:
 
-            } else if (getUserBotStatus(chatId) == BotStatus.REGISTRATION_ATTEMPT) {
-                try {
-                    registerVkUser(chatId, messageText);
-                } catch (ClientException | ApiException e) {
-                    System.out.println(e.getMessage());
-                }
-                setUserBotStatus(chatId, BotStatus.NORMAL);
+                    try {
+                        registerVkUser(chatId, messageText);
+                    } catch (ClientException | ApiException e) {
+                        System.out.println(e.getMessage());
+                    }
+                    setUserBotStatus(chatId, BotStatus.NORMAL);
+                    break;
             }
-
         }
     }
+
+    private void addWordsForUser(Long chatId, String messageText) {
+        CopyOnWriteArraySet<String> userWordList;
+
+        if (TelegramBot.getWordsForAdding().containsKey(chatId)) {
+            userWordList = TelegramBot.getWordsForAdding().get(chatId);
+        } else {
+            userWordList = new CopyOnWriteArraySet<>();
+        }
+        userWordList.add(messageText.toLowerCase().replace("\n", " "));
+        TelegramBot.getWordsForAdding().put(chatId, userWordList);
+    }
+
+    private void writeWordsForUser(Long chatId, CopyOnWriteArraySet<String> resultWordsListForUser) {
+        sendMessage("Отслеживаемые слова: "
+                + keywordsCollector.addUsersWord(chatId, resultWordsListForUser), chatId);
+        sendMessage("можете проверить новости командой /check_news " +
+                "или подождать пока я сделаю это за вас и пришлю вам ссылки", chatId);
+        TelegramBot.getWordsForAdding().get(chatId).clear();
+    }
+
 
     public int checkUserNews(Long chatId) {
         Optional<User> userOpt = userService.findById(chatId);
@@ -232,7 +243,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
     private static BotStatus getUserBotStatus(Long chatId) { //TODO: попробовать положить соответствие статуса в noSQL
-        HashMap<Long, BotStatus> userSettings = TelegramBot.getUserStatus(); //TODO: ConcurrentHashMap
+        Map<Long, BotStatus> userSettings = TelegramBot.getUserStatus();
         BotStatus settings = userSettings.get(chatId);
         if (settings == null) {
             return BotStatus.NORMAL;
@@ -241,8 +252,18 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
     private static void setUserBotStatus(Long chatId, BotStatus botStatus) {
-        HashMap<Long, BotStatus> userSettings = TelegramBot.getUserStatus();
+        Map<Long, BotStatus> userSettings = TelegramBot.getUserStatus();
         userSettings.put(chatId, botStatus);
     }
 
+    private List<BotCommand> getBotCommands() {
+        List<BotCommand> commands = new ArrayList<>();
+        commands.add(new BotCommand("/start", "регистрация"));
+        commands.add(new BotCommand("/show_words", "показать отслеживаемые слова"));
+        commands.add(new BotCommand("/add_words", "добавить отслеживаемые слова"));
+        commands.add(new BotCommand("/stop_adding", "остановить добавление слов"));
+        commands.add(new BotCommand("/delete_all_words", "очистить список отслеживаемых слов"));
+        commands.add(new BotCommand("/check_news", "проверить что там в новостях по отслеживаемому"));
+        return commands;
+    }
 }

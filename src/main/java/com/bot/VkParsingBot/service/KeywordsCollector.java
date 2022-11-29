@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.stream.Collectors;
 
 
@@ -19,7 +20,7 @@ public class KeywordsCollector {
     private final KeywordsRepository keywordsRepository;
 
 
-    public List<String> addUsersWord(Long userId, List<String> words) {
+    public List<String> addUsersWord(Long userId, CopyOnWriteArraySet<String> words) {
         var resultList = new ArrayList<Keywords>();
         for (String word : words) {
             Keywords keyword = new Keywords();
