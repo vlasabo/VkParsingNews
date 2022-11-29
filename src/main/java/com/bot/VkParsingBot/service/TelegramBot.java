@@ -2,11 +2,12 @@ package com.bot.VkParsingBot.service;
 
 import com.bot.VkParsingBot.config.BotProperties;
 import com.bot.VkParsingBot.model.BotStatus;
+import com.bot.VkParsingBot.model.Sent;
 import com.bot.VkParsingBot.model.User;
+import com.bot.VkParsingBot.repository.SentRepository;
 import com.vk.api.sdk.exceptions.ApiException;
 import com.vk.api.sdk.exceptions.ClientException;
 import lombok.Getter;
-import lombok.Setter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.stereotype.Service;
@@ -20,7 +21,10 @@ import org.telegram.telegrambots.meta.api.objects.commands.scope.BotCommandScope
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -36,29 +40,27 @@ public class TelegramBot extends TelegramLongPollingBot {
                     "Для окончания режима записи испрользуйте команду /stop_adding";
 
     private final UserService userService;
-    @Autowired
-    private KeywordsCollector keywordsCollector;
+    private final KeywordsCollector keywordsCollector;
     private final BotProperties botProperties;
     @Getter
     private static HashMap<Long, BotStatus> userStatus; //TODO change Map
     @Getter
     private static HashMap<Long, List<String>> wordsForAdding;
-    @Getter
-    @Setter
-    private static HashMap<Long, List<String>> sentNews;
-
     private final VkUser vkUser;
     private final VkService vkService;
+    private final SentRepository sentRepository;
 
     @Autowired
-    public TelegramBot(UserService userService, BotProperties botProperties, VkUser vkUser, VkService vkService) throws TelegramApiException {
+    public TelegramBot(UserService userService, KeywordsCollector keywordsCollector, BotProperties botProperties,
+                       VkUser vkUser, VkService vkService, SentRepository sentRepository) throws TelegramApiException {
         this.userService = userService;
+        this.keywordsCollector = keywordsCollector;
         this.botProperties = botProperties;
         this.vkUser = vkUser;
         this.vkService = vkService;
+        this.sentRepository = sentRepository;
         userStatus = new HashMap<>();
         wordsForAdding = new HashMap<>();
-        sentNews = new HashMap<>();
         List<BotCommand> commands = new ArrayList<>(); //TODO: вынести команды
         commands.add(new BotCommand("/start", "регистрация"));
         commands.add(new BotCommand("/show_words", "показать отслеживаемые слова"));
@@ -148,24 +150,21 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     public int checkUserNews(Long chatId) {
         Optional<User> userOpt = userService.findById(chatId);
-        List<String> answerList;
         int replySize = 0;
 
         if (userOpt.isPresent()) {
             if (!userOpt.get().getToken().isBlank()) {
                 try {
-                    answerList = vkService
-                            .checkNewsVk(userOpt.get().getToken(), userOpt.get().getVkId(), chatId);
-                    var sentNewsToUserList = TelegramBot.getSentNews()
-                            .getOrDefault(chatId, Collections.emptyList());
-                    var resultListToSend = answerList.stream()
-                            .filter(s -> !sentNewsToUserList.contains(s)).collect(Collectors.toList());
-                    resultListToSend.forEach(s -> sendMessage(s, chatId));
-                    replySize = resultListToSend.size();
-                    var hashMapSent = TelegramBot.getSentNews();
-                    resultListToSend.addAll(sentNewsToUserList);
-                    hashMapSent.put(chatId, resultListToSend);
-                    TelegramBot.setSentNews(hashMapSent);
+                    var answerAndSaveMap = vkService
+                            .getNewsToSendAndSave(userOpt.get().getToken(), userOpt.get().getVkId(), chatId);
+                    var answerList = answerAndSaveMap.getOrDefault("sending", new ArrayList<>());
+                    answerList.forEach(s -> sendMessage(s, chatId));
+                    var saveList = answerAndSaveMap.getOrDefault("saving", new ArrayList<>())
+                            .stream()
+                            .map(string -> new Sent(string, chatId))
+                            .collect(Collectors.toList());
+                    sentRepository.saveAll(saveList);
+                    replySize = answerList.size();
                 } catch (ClientException | ApiException e) {
                     System.out.println(e.getMessage());
                 }
