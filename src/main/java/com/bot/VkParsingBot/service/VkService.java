@@ -1,5 +1,6 @@
 package com.bot.VkParsingBot.service;
 
+import com.bot.VkParsingBot.model.User;
 import com.vk.api.sdk.client.TransportClient;
 import com.vk.api.sdk.client.VkApiClient;
 import com.vk.api.sdk.client.actors.UserActor;
@@ -15,10 +16,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -26,13 +24,14 @@ import java.util.stream.Collectors;
 public class VkService {
 
     private static final Integer NEWS_COUNT = 100;
-    private final SentService sentService;
-    private final KeywordsCollector keywordsCollector;
     private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
-    public Map<String, List<String>> getNewsToSendAndSave(String token, Integer vkId, Long userId)
+    public Map<String, List<String>> getNewsToSendAndSave(User user)
             throws ClientException, ApiException { //в мапе лежат лист сообщений к отправке и лист сообщений к сохранению
-        var userWordsList = keywordsCollector.usersWord(userId);
+        String token = user.getToken();
+        Integer vkId = user.getVkId();
+
+        var userWordsList = user.getUserWordsList();
         if (userWordsList.size() == 0) { //если отслеживаемых слов нет - вернем пустую мапу
             return new HashMap<>();
         }
@@ -45,7 +44,7 @@ public class VkService {
 
         var resultListToSaveSent = new ArrayList<String>();
         var resultListToSending = listNews.stream()
-                .filter(item -> sentService.checkSentNewsForUser(userId, getNewsSource(item))) //нет в отправленных
+                .filter(item -> !user.getSentNews().contains(getNewsSource(item))) //нет в отправленных
                 .filter(item -> !item.getRaw().get("text").toString().isBlank()) //не пустой текст
                 .filter(item -> checkContainsUserWords(item, userWordsList)) //содержит отслеживаемые слова
                 .peek(item -> resultListToSaveSent.add(getNewsSource(item))) //добавили в лист "отправленные"
@@ -63,7 +62,7 @@ public class VkService {
                 .concat(item.getRaw().get("post_id").toString());
     }
 
-    private boolean checkContainsUserWords(NewsfeedNewsfeedItemOneOf item, List<String> userWordsList) {
+    private boolean checkContainsUserWords(NewsfeedNewsfeedItemOneOf item, Set<String> userWordsList) {
         return userWordsList.stream()
                 .anyMatch(x ->
                         item.getRaw().get("text").toString().toLowerCase().replaceAll("[^A-Za-zА-Яа-я0-9 ]", " ")

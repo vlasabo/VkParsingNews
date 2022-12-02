@@ -4,11 +4,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.Id;
-import javax.persistence.Table;
+import javax.persistence.*;
 import java.time.LocalDateTime;
+import java.util.Set;
 
 @Entity
 @Table(name = "users")
@@ -51,4 +49,17 @@ public class User {
     @Column(name = "vk_id")
     private Integer vkId;
 
+    @Getter
+    @Setter
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "sent", joinColumns = @JoinColumn(name = "user_id"))
+    @Column(name = "sent_news_data")
+    private Set<String> sentNews;
+
+    @Getter
+    @Setter
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "keywords", joinColumns = @JoinColumn(name = "user_id"))
+    @Column(name = "word")
+    private Set<String> userWordsList;
 }
