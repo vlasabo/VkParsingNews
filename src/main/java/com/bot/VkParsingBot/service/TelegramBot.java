@@ -41,7 +41,6 @@ public class TelegramBot extends TelegramLongPollingBot {
                     "Для окончания режима записи испрользуйте команду /stop_adding";
 
     private final UserService userService;
-    private final KeywordsCollector keywordsCollector;
     private final BotProperties botProperties;
     @Getter
     private static Map<Long, BotStatus> userStatus;
@@ -51,15 +50,16 @@ public class TelegramBot extends TelegramLongPollingBot {
     private static Map<Long, CopyOnWriteArraySet<String>> wordsForAdding;
     private final VkUser vkUser;
     private final VkService vkService;
+    private final KeywordsCollector keywordsCollector;
 
     @Autowired
-    public TelegramBot(UserService userService, KeywordsCollector keywordsCollector, BotProperties botProperties,
-                       VkUser vkUser, VkService vkService) throws TelegramApiException {
+    public TelegramBot(UserService userService, BotProperties botProperties,
+                       VkUser vkUser, VkService vkService, KeywordsCollector keywordsCollector) throws TelegramApiException {
         this.userService = userService;
-        this.keywordsCollector = keywordsCollector;
         this.botProperties = botProperties;
         this.vkUser = vkUser;
         this.vkService = vkService;
+        this.keywordsCollector = keywordsCollector;
         userStatus = new ConcurrentHashMap<>();
         wordsForAdding = new ConcurrentHashMap<>();
 
@@ -89,7 +89,11 @@ public class TelegramBot extends TelegramLongPollingBot {
                             setUserBotStatus(chatId, BotStatus.REGISTRATION_ATTEMPT);
                             break;
                         case "/show_words":
-                            sendMessage(keywordsCollector.usersWord(chatId).toString(), chatId);
+                            if (userService.findById(chatId).isPresent()) {
+                                sendMessage(userService.findById(chatId).get().getUserWordsList().toString(), chatId);
+                            } else {
+                                sendMessage("сначала зарегистрируйтесь", chatId);
+                            }
                             break;
                         case "/add_words":
                             sendMessage(STATUS_FOR_USER, chatId);
@@ -105,8 +109,14 @@ public class TelegramBot extends TelegramLongPollingBot {
                             }
                             break;
                         case "/delete_all_words":
-                            keywordsCollector.clearWords(chatId);
-                            sendMessage("Все слова очищены", chatId);
+                            if (userService.findById(chatId).isPresent()) {
+                                User user = userService.findById(chatId).get();
+                                user.getUserWordsList().clear();
+                                userService.save(user);
+                                sendMessage("Все слова очищены", chatId);
+                            } else {
+                                sendMessage("сначала зарегистрируйтесь", chatId);
+                            }
                     }
                     break;
                 case WAITING:
@@ -146,8 +156,13 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
     private void writeWordsForUser(Long chatId, CopyOnWriteArraySet<String> resultWordsListForUser) {
+        if (userService.findById(chatId).isEmpty()) {
+            sendMessage("Вы не зарегистрированы", chatId);
+            TelegramBot.getWordsForAdding().get(chatId).clear();
+            return;
+        }
         sendMessage("Отслеживаемые слова: "
-                + keywordsCollector.addUsersWord(chatId, resultWordsListForUser), chatId);
+                + keywordsCollector.addUsersWord(userService.findById(chatId).get(), resultWordsListForUser), chatId);
         sendMessage("можете проверить новости командой /check_news " +
                 "или подождать пока я сделаю это за вас и пришлю вам ссылки", chatId);
         TelegramBot.getWordsForAdding().get(chatId).clear();
