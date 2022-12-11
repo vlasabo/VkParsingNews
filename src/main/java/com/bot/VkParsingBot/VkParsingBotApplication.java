@@ -13,5 +13,4 @@ public class VkParsingBotApplication {//TODO: Минорный момент. П�
 	public static void main(String[] args) {
 		SpringApplication.run(VkParsingBotApplication.class, args);
 	}
-
 }
