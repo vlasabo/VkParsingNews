@@ -50,6 +50,8 @@ public class VkService {
                 .peek(item -> resultListToSaveSent.add(getNewsSource(item))) //добавили в лист "отправленные"
                 .map(this::getResultNewsToAdd) //в строку
                 .collect(Collectors.toList());
+        // TODO: 11.12.2022 достаточно кривое решение. Почему бы не обернуть в отдельный объект?
+        //  Возвращать мапу из публичного метода - так себе затея
         Map<String, List<String>> resultMap = new HashMap<>();
         resultMap.put("sending", resultListToSending);
         resultMap.put("saving", resultListToSaveSent);
@@ -57,6 +59,7 @@ public class VkService {
     }
 
     private String getNewsSource(NewsfeedNewsfeedItemOneOf item) {
+        // TODO: 11.12.2022 одна строчка - одна точка
         return item.getRaw().get("source_id").toString()
                 .concat("_")
                 .concat(item.getRaw().get("post_id").toString());
@@ -65,6 +68,7 @@ public class VkService {
     private boolean checkContainsUserWords(NewsfeedNewsfeedItemOneOf item, Set<String> userWordsList) {
         return userWordsList.stream()
                 .anyMatch(x ->
+                        // TODO: 11.12.2022 одна строчка - одна точка
                         item.getRaw().get("text").toString().toLowerCase().replaceAll("[^A-Za-zА-Яа-я0-9 ]", " ")
                                 .contains(" " + x.toLowerCase() + " "));
     }
@@ -87,6 +91,7 @@ public class VkService {
 
     private List<NewsfeedNewsfeedItemOneOf> getNews(VkApiClient vk, UserActor actor, List<Filters> filterList)
             throws ClientException, ApiException {
+        // TODO: 11.12.2022 одна строчка - одна точка
         int beginningOfTodayInSec = (int) LocalDateTime.now().with(LocalTime.MIN).toEpochSecond(ZoneOffset.ofHours(3));
         return vk.newsfeed()
                 .get(actor)

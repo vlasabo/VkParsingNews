@@ -30,6 +30,7 @@ public class VkUser {
         this.APP_ID = vkProperties.getId();
     }
 
+    // TODO: 11.12.2022 не экономь на пустых строках внутри метода
     public Map<Integer, String> createAndSendTokenAndVkId(String code) throws ClientException, ApiException {
         TransportClient transportClient = new HttpTransportClient();
         VkApiClient vk = new VkApiClient(transportClient); //TODO: VkApiClient сделать отдельным бином и не создавать его каждый раз

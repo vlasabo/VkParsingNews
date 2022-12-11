@@ -41,12 +41,20 @@ public class TelegramBot extends TelegramLongPollingBot {
                     "Для окончания режима записи испрользуйте команду /stop_adding";
 
     private final UserService userService;
+    // TODO: 11.12.2022 советую группировать поля. Сервисы с сервисами, проперти с пропертями.
+    //  У тебя все в кучу сейчас
     private final BotProperties botProperties;
+    // TODO: 11.12.2022 геттер над полем класса - признак, что ошиблись с поректированием.
+    //  Советую вынести коллекции из рантайма в отдельный класс. И написать методы для работы с ними.
+    //  Будет проще менеджить и ограничивать использование с развитием проекта.
+    //  По сути, сейчас ты нарушаешь инкапсуляцию
     @Getter
     private static Map<Long, BotStatus> userStatus;
     //добавляемое количество слов не будет большим, порядок не важен, одинаковые слова не нужны,
     // так что эта реализация вместо CopyOnWriteArrayList
     @Getter
+    // TODO: 11.12.2022 кст, зачем статик? у тебя синглтон, как бы)
+    //  CopyOnWriteArraySet -> Set. А инициализируй чем угодно. Кст, посмотри в сторону ConcurrentHashMap.newKeySet()
     private static Map<Long, CopyOnWriteArraySet<String>> wordsForAdding;
     private final VkUser vkUser;
     private final VkService vkService;
@@ -63,6 +71,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         userStatus = new ConcurrentHashMap<>();
         wordsForAdding = new ConcurrentHashMap<>();
 
+        // TODO: 11.12.2022 кажется, это претендент на какой-нить PostConstruct
         execute(new SetMyCommands(getBotCommands(), new BotCommandScopeDefault(), "ru"));
     }
 
@@ -77,6 +86,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
     @Override
+    // TODO: 11.12.2022 стоит дальше декомпозировать, вынеся часть кода в приватные методы
     public void onUpdateReceived(Update update) {
         if (update.hasMessage() && update.getMessage().hasText()) {
             Long chatId = update.getMessage().getChatId();
@@ -84,6 +94,7 @@ public class TelegramBot extends TelegramLongPollingBot {
             switch (getUserBotStatus(chatId)) {
                 case NORMAL:
                     switch (messageText) {
+                        // TODO: 11.12.2022 Мб стоит вынести класс-констант, содержащий команды?
                         case "/start":
                             newBotUser(update);
                             setUserBotStatus(chatId, BotStatus.REGISTRATION_ATTEMPT);
@@ -123,7 +134,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                     if ("/stop_adding".equals(messageText)) {
                         setUserBotStatus(chatId, BotStatus.NORMAL);
                         var resultWordsListForUser = TelegramBot.getWordsForAdding().get(chatId);
-                        if (resultWordsListForUser.size() > 0) {
+                        if (resultWordsListForUser.size() > 0) {// TODO: 11.12.2022 советую оставлять пустую строку перед условной конструкцией/циклом
                             writeWordsForUser(chatId, resultWordsListForUser);
                         }
                     } else {
@@ -131,7 +142,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                     }
                     break;
                 case REGISTRATION_ATTEMPT:
-
+//TODO: а вот тут пустая строка кажется лишней. Я бы в целом советовал содержимое case в приватные методы вынести
                     try {
                         registerVkUser(chatId, messageText);
                     } catch (ClientException | ApiException e) {
@@ -139,12 +150,17 @@ public class TelegramBot extends TelegramLongPollingBot {
                     }
                     setUserBotStatus(chatId, BotStatus.NORMAL);
                     break;
+                // TODO: 11.12.2022 никогда не забывай про default. Если кажется, что не нужен - кидай в нем эксепшн
             }
         }
     }
 
     private void addWordsForUser(Long chatId, String messageText) {
         CopyOnWriteArraySet<String> userWordList;
+
+        // TODO: 11.12.2022 несколько корявый if-else. Я бы сделал так:
+//        TelegramBot.getWordsForAdding().putIfAbsent(chatId, new CopyOnWriteArraySet<>());
+//        var userWordList = TelegramBot.getWordsForAdding().get(chatId);
 
         if (TelegramBot.getWordsForAdding().containsKey(chatId)) {
             userWordList = TelegramBot.getWordsForAdding().get(chatId);
@@ -156,6 +172,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
     private void writeWordsForUser(Long chatId, CopyOnWriteArraySet<String> resultWordsListForUser) {
+        // TODO: 11.12.2022 Зачем возвращать опшнал, если не процессишь его в функцциональном стиле? Это избыточно
         if (userService.findById(chatId).isEmpty()) {
             sendMessage("Вы не зарегистрированы", chatId);
             TelegramBot.getWordsForAdding().get(chatId).clear();
@@ -165,11 +182,11 @@ public class TelegramBot extends TelegramLongPollingBot {
                 + keywordsCollector.addUsersWord(userService.findById(chatId).get(), resultWordsListForUser), chatId);
         sendMessage("можете проверить новости командой /check_news " +
                 "или подождать пока я сделаю это за вас и пришлю вам ссылки", chatId);
-        TelegramBot.getWordsForAdding().get(chatId).clear();
-    }
+        TelegramBot.getWordsForAdding().get(chatId).clear();// TODO: 11.12.2022 не хватает пустой строки перед этой
+    }//TODO: ниже лишняя пустая строка
 
 
-    public int checkUserNews(Long chatId) {
+    public int checkUserNews(Long chatId) {// TODO: 11.12.2022 не самый красивый метод .Стоит подумать, как переписать
         Optional<User> userOpt = userService.findById(chatId);
         int replySize = 0;
 
@@ -183,6 +200,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                     var answerAndSaveMap = vkService
                             .getNewsToSendAndSave(user);
                     var answerList = answerAndSaveMap.getOrDefault("sending", new ArrayList<>());
+                    // TODO: 11.12.2022 как думаешь, что будет, если вызвать forEach над пустым листом?)
                     if (answerList.size() > 0) {
                         answerList.forEach(s -> sendMessage(s, chatId));
                         answerAndSaveMap.getOrDefault("saving", new ArrayList<>())
@@ -198,6 +216,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         return replySize;
     }
 
+    // TODO: 11.12.2022 Посмотри, как обрабатывать Optional в функциональном стиле. Будет лаконичнее и красивее
     private void registerVkUser(Long chatId, String messageText) throws ClientException, ApiException {
         if (messageText.contains("https://oauth.vk.com/blank.html#code=")) {
             String code = messageText.replace("https://oauth.vk.com/blank.html#code=", "");
@@ -218,10 +237,12 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
     }
 
+    // TODO: 11.12.2022 Посмотри, как обрабатывать Optional в функциональном стиле. Будет лаконичнее и красивее
     private void newBotUser(Update update) {
         String text;
         Long userId = update.getMessage().getChatId();
         if (userService.findById(userId).isEmpty()) {
+//            TODO: это чудо претендует на вынесение в отдельный метод
             Chat chat = update.getMessage().getChat();
             User user = new User();
             user.setId(userId);
@@ -240,6 +261,7 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     }
 
+    // TODO: 11.12.2022 кажется, этот метод вообще должен быть в отдельном классе)
     private void sendMessage(String text, Long chatId) {
         if (text.length() > 4000) {
             String fullText = text;
@@ -256,6 +278,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         }
     }
 
+    // TODO: 11.12.2022 статик методов в сервисных классах быть не должно
     private static BotStatus getUserBotStatus(Long chatId) {
         Map<Long, BotStatus> userSettings = TelegramBot.getUserStatus();
         BotStatus settings = userSettings.get(chatId);
@@ -272,6 +295,7 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     private List<BotCommand> getBotCommands() {
         List<BotCommand> commands = new ArrayList<>();
+        // TODO: 11.12.2022 команды точно стоит вынести в константы. А лучше вообще в enum
         commands.add(new BotCommand("/start", "регистрация"));
         commands.add(new BotCommand("/show_words", "показать отслеживаемые слова"));
         commands.add(new BotCommand("/add_words", "добавить отслеживаемые слова"));

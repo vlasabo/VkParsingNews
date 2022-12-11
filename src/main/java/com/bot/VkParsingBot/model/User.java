@@ -9,6 +9,8 @@ import java.time.LocalDateTime;
 import java.util.Set;
 
 @Entity
+// TODO: 11.12.2022 В чем логика с наличие/отсутствием геттеров? И советую всегда их выносить над
+//  классом, над полями - только в исключительных случаях, либо для доп. настройки
 @Table(name = "users")
 @NoArgsConstructor
 public class User {
@@ -54,6 +56,7 @@ public class User {
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "sent", joinColumns = @JoinColumn(name = "user_id"))
     @Column(name = "sent_news_data")
+    // TODO: 11.12.2022 Почему связи не описаны в Entity-классах? Пусть там даже будут классы на пару полей
     private Set<String> sentNews;
 
     @Getter
@@ -61,5 +64,7 @@ public class User {
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "keywords", joinColumns = @JoinColumn(name = "user_id"))
     @Column(name = "word")
+//    TODO: 11.12.2022 Всегда делай базовую инициализацию для полей-коллекций в сущностях.
+//     Иначе рано или поздно поймаешь NullPointerException
     private Set<String> userWordsList;
 }

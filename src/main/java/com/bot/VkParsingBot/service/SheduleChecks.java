@@ -7,6 +7,8 @@ import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
+// TODO: 11.12.2022 стоит вынести в отдельный пакет.
+//  И назвать бы его покрасивее. CheckNewsJob, например
 class SheduleChecks {
     private final TelegramBot bot;
     private final UserService userService;

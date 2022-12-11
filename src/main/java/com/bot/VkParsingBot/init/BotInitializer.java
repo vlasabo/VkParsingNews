@@ -21,6 +21,7 @@ public class BotInitializer {
         try {
             telegramBotsApi.registerBot(bot);
         } catch (TelegramApiException e) {
+            // TODO: 11.12.2022 Не хочешь нормальный логгер подключить? Любой из slf4j
             System.out.println(e.getMessage());
         }
     }

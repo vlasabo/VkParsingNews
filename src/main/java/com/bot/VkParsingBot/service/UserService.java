@@ -17,10 +17,12 @@ public class UserService {
         return userRepository.findById(userId);
     }
 
+    // TODO: 11.12.2022 create()
     public void save(User user) {
         userRepository.save(user);
     }
 
+    // TODO: 11.12.2022 getAll(). Поосторожнее с таким. Пользователей и миллион мб
     public List<User> findAll() {
         return userRepository.findAll();
     }
