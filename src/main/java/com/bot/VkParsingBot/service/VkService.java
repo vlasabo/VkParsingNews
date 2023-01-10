@@ -44,7 +44,7 @@ public class VkService {
 
         var resultListToSaveSent = new ArrayList<String>();
         var resultListToSending = listNews.stream()
-                .filter(item -> !user.getSentNews().contains(getNewsSource(item))) //нет в отправленных
+                .filter(item -> !user.getSentNews().contains(getNewsSource(item) + user.getId())) //нет в отправленных
                 .filter(item -> !item.getRaw().get("text").toString().isBlank()) //не пустой текст
                 .filter(item -> checkContainsUserWords(item, userWordsList)) //содержит отслеживаемые слова
                 .peek(item -> resultListToSaveSent.add(getNewsSource(item))) //добавили в лист "отправленные"

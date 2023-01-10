@@ -186,7 +186,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                     if (answerList.size() > 0) {
                         answerList.forEach(s -> sendMessage(s, chatId));
                         answerAndSaveMap.getOrDefault("saving", new ArrayList<>())
-                                .forEach(sent -> user.getSentNews().add(sent));
+                                .forEach(sent -> user.getSentNews().add(sent + chatId));
                         userService.save(user);
                     }
                     replySize = answerList.size();
