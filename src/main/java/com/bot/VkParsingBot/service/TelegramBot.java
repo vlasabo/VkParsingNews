@@ -54,7 +54,7 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     @Autowired
     public TelegramBot(UserService userService, BotProperties botProperties,
-                       VkUser vkUser, VkService vkService, KeywordsCollector keywordsCollector) throws TelegramApiException {
+                       VkUser vkUser, VkService vkService, KeywordsCollector keywordsCollector) {
         this.userService = userService;
         this.botProperties = botProperties;
         this.vkUser = vkUser;
@@ -63,7 +63,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         userStatus = new ConcurrentHashMap<>();
         wordsForAdding = new ConcurrentHashMap<>();
 
-        execute(new SetMyCommands(getBotCommands(), new BotCommandScopeDefault(), "ru"));
+        new SetMyCommands(getBotCommands(), new BotCommandScopeDefault(), "en");
     }
 
     @Override
