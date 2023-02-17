@@ -7,20 +7,33 @@
 файл application.properties исключен из репозитория. Для локального запуска он должен содержать следующие строки (? - ваше значение):
 
 #telegram settings
+
 bot.name=?
+
 bot.token=?
 
 #db settings
+
 spring.sql.init.mode=always
+
 spring.datasource.url=jdbc:postgresql://localhost:5432/?
+
 spring.datasource.driverClassName=org.postgresql.Driver
+
 spring.jpa.database=postgresql
+
 spring.jpa.database-platform=org.hibernate.dialect.PostgreSQLDialect
+
 hibernate.hbm2ddl.auto=update
+
 spring.datasource.username=?
+
 spring.datasource.password=?
+
 spring.jpa.defer-datasource-initialization=true
 
 #VK settings
+
 app.code=?
+
 app.id=?
