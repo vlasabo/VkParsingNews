@@ -2,6 +2,7 @@ package com.bot.VkParsingBot.init;
 
 import com.bot.VkParsingBot.service.TelegramBot;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
@@ -11,6 +12,7 @@ import org.telegram.telegrambots.updatesreceivers.DefaultBotSession;
 
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class BotInitializer {
 
     private final TelegramBot bot;
@@ -21,7 +23,7 @@ public class BotInitializer {
         try {
             telegramBotsApi.registerBot(bot);
         } catch (TelegramApiException e) {
-            System.out.println(e.getMessage());
+            log.error(e.getMessage());
         }
     }
 }

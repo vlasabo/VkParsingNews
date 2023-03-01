@@ -6,6 +6,7 @@ import com.bot.VkParsingBot.model.User;
 import com.vk.api.sdk.exceptions.ApiException;
 import com.vk.api.sdk.exceptions.ClientException;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.stereotype.Service;
@@ -29,6 +30,7 @@ import java.util.concurrent.CopyOnWriteArraySet;
 import static com.bot.VkParsingBot.model.BotStatus.WAITING;
 
 @Service
+@Slf4j
 @EnableConfigurationProperties(value = BotProperties.class)
 public class TelegramBot extends TelegramLongPollingBot {
 
@@ -135,7 +137,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                     try {
                         registerVkUser(chatId, messageText);
                     } catch (ClientException | ApiException e) {
-                        System.out.println(e.getMessage());
+                        log.error(e.getMessage());
                     }
                     setUserBotStatus(chatId, BotStatus.NORMAL);
                     break;
@@ -191,7 +193,7 @@ public class TelegramBot extends TelegramLongPollingBot {
                     }
                     replySize = answerList.size();
                 } catch (ClientException | ApiException e) {
-                    System.out.println(e.getMessage());
+                    log.error(e.getMessage());
                 }
             }
         }
